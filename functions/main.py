@@ -19,4 +19,4 @@ def hello_http(request: https_fn.Request):
         name = request_args["name"]
     else:
         name = "World"
-    return f"Hello {name}!"
+    return f"Hello {name}! This works!"
