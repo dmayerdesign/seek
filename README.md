@@ -4,15 +4,14 @@
 
 ### Prerequisites (Mac OS)
 
-1. Download Visual Studio Code or a similar text editor.
+1. Download [Visual Studio Code](https://code.visualstudio.com/download) or a similar text editor.
 2. Clone the Git repository:
     - Open your shell (e.g. Terminal).
     - Install the GitHub.com command line interface: `brew install gh`.
     - If you have a folder for code, `cd` into it. Otherwise, run this command: `mkdir -p ~/Code && cd ~/Code`
     - Run `gh auth login` and follow the steps needed to authenticate with the GitHub.com command line interface.
         - If you get a "command not found" error, try opening a new shell window and trying again.
-    - Run `gh repo clone dmayerdesign/seek`.
-    - Run `cd seek`
+    - Run `gh repo clone dmayerdesign/seek && cd seek`.
     - Open this new `seek` folder in your text editor.
 3. [Install Python 3.12](https://www.python.org/downloads/)
 4. [Install Node.js](https://nodejs.org/en)
@@ -22,9 +21,9 @@
 npm install -g firebase-tools
 ```
 
-### Test locally while developing
+### Test the back end locally while developing
 
-From now on, all commands should be run from inside the `functions/` folder. Run the following in your shell:
+In this section, all commands should be run from inside the `functions/` folder.
 
 ```sh
 cd functions
@@ -33,6 +32,7 @@ cd functions
 #### Install dependencies
 
 ```sh
+# Assuming you are inside the functions/ folder
 /usr/local/bin/python3 -m venv venv
 /usr/local/bin/python3 -m pip install -r requirements.txt
 ```
