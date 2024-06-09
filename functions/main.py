@@ -3,16 +3,11 @@ from firebase_functions import https_fn
 from firebase_functions.params import IntParam, StringParam
 # The Firebase Admin SDK to access Cloud Firestore.
 from firebase_admin import initialize_app
+from openai import OpenAI
 
 app = initialize_app()
 
-WELCOME_MESSAGE = StringParam("WELCOME_MESSAGE")
-
-# To use configured parameters inside the config for a function, provide them
-# directly. To use them at runtime, call .value() on them.
-@https_fn.on_request()
-def hello_world_welcome():
-    return https_fn.Response(f'{WELCOME_MESSAGE.value()}! I am a function!')
+OPENAI_API_KEY = StringParam("OPENAI_API_KEY")
 
 @https_fn.on_request()
 def hello_world_name(request: https_fn.Request):
@@ -26,3 +21,39 @@ def hello_world_name(request: https_fn.Request):
     else:
         name = "World"
     return f"Hello {name}! This works!"
+
+response = ""
+
+@https_fn.on_request()
+def openai_test(request: https_fn.Request):
+    client = OpenAI(api_key = OPENAI_API_KEY.value)
+    request_args = request.args
+    
+    if request.method == "GET" and request_args and "prompt" in request_args:
+        name = request_args["prompt"]
+
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful teaching assistant."},
+                {"role": "user", "content": f"Give me 1 open-ended question about {name} at a 10th grade level."},
+            ]
+        )
+  
+        question = response.choices[0].message.content
+    
+        response_2 = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are an intelligent high school student in the USA."},
+                {"role": "user", "content": f"Give me 4 answers to this question: {question}, at a 10th grade level."},
+            ]
+         )
+    
+        answers = response_2.choices[0].message.content
+        return question
+        return answers
+    
+        # response.to_json()
+    
+    return f"fail"
