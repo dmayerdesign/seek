@@ -1,3 +1,4 @@
 functions-framework==3.*
 firebase-functions==0.2.*
 openai==1.*
+anthropic==0.34.*
