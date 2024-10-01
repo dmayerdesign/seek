@@ -1,7 +1,7 @@
 {
-  "name": "seek",
-  "integrations": {
-    "capacitor": {}
-  },
-  "type": "react-vite"
+	"name": "seek",
+	"integrations": {
+		"capacitor": {}
+	},
+	"type": "react-vite"
 }
