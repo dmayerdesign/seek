@@ -1,7 +1,7 @@
 # The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
 from textwrap import dedent
 from typing import List
-from firebase_functions import https_fn
+from firebase_functions import https_fn, options
 from firebase_functions.params import IntParam, StringParam
 # The Firebase Admin SDK to access Cloud Firestore.
 from firebase_admin import initialize_app
@@ -104,7 +104,7 @@ def anthropic_test(request: https_fn.Request):
             return message.content
     return ""
 
-@https_fn.on_request()
+@https_fn.on_request(cors=options.CorsOptions(cors_origins=["*"], cors_methods=["GET"]))
 def getTeacherData(request: https_fn.Request):
     if request.method == "GET":
         teacher_id = request.args.get('teacher_id')
