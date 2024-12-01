@@ -3,12 +3,13 @@ from textwrap import dedent
 from typing import List
 from firebase_functions import https_fn, options
 from firebase_functions.params import IntParam, StringParam
+from google.cloud.firestore_v1 import FieldFilter
 # The Firebase Admin SDK to access Cloud Firestore.
 from firebase_admin import initialize_app
 from firebase_admin import firestore
 import asyncio
 from anthropic import AsyncAnthropic
-from data_model import Lesson, LessonQuestion, LessonResponse
+from data_model import Lesson, LessonPlan, LessonQuestion, LessonResponse
 # from functions import data_model
 
 # OPENAI_API_KEY = StringParam("OPENAI_API_KEY")
@@ -26,40 +27,6 @@ async def ask_about_topic(client: AsyncAnthropic, topic: str):
         model="claude-3-5-sonnet-20240620",
     )
     print("got message.content:")
-    return message.content[0].text
-
-async def process_student_response(
-    client: AsyncAnthropic,
-    topic: str,
-    question: str,
-    student_response: LessonResponse,
-    categories: List[str],
-):
-    # id
-    # question_id
-    # response_category
-    # response_category_explanation
-    # response_category_alternatives
-    message = await client.messages.create(
-        # max_tokens=4012,
-        messages=[
-            {
-                "role": "user",
-                "content": dedent(f"""\
-                    Your task is to analyze the following student response to this question about {topic}: "{question}".
-
-                    The student responded:
-                    "{student_response.body_text}"
-                    
-                    Respond with a JSON object with 3 fields: "response_category", "response_category_explanation", and "response_category_alternatives".
-                    "response_category" should be one of these: {", ".join(categories)}.
-                    "response_category_explanation" should be a brief explanation of why the response fits that category.
-                    "response_category_alternatives" should be a list of other categories that could also apply to the response, if any.
-                """),
-            },
-        ],
-        model="claude-3-5-sonnet-20240620",
-    )
     return message.content[0].text
 
 @https_fn.on_request()
@@ -224,46 +191,13 @@ def deleteLessonPlan(request: https_fn.Request):
 def putLessonQuestion(request: https_fn.Request):
     if request.method in ["POST", "PUT"]:
         teacher_id = request.args.get('teacher_id')
-        plan_id = request.args.get('plan_id')
-        question_data: LessonQuestion = request.get_json()
-        question_id = question_data.id
-        if teacher_id is not None and plan_id is not None and question_data is not None:
-            # First, ask the LLM to analyze the question
-            client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY.value)
-            # additional_context_summarized
-            # suggested_response_categories
-            additional_ctx = "Additional context: none provided"
-            if question_data.additional_context is not None and question_data.additional_context != "":
-                additional_ctx = "\n".join([
-                    "Additional context:",
-                    "Use the following material from the curriculum to inform your analysis:\n",
-                    "----- BEGIN SUPPORTING MATERIAL -----",
-                    "{question_data.additional_context}",
-                    "----- END SUPPORTING MATERIAL -----",
-                ])
-            message = client.messages.create(
-                model="claude-3-5-sonnet-20240620",
-                max_tokens=1024,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": dedent(f"""\
-                            I am teaching my {question_data.field_of_study} class about {question_data.specific_topic}.
-
-                            {additional_ctx}
-
-                            Now please analyze the following question: "{question_data.additional_context}"
-
-                            Respond with a single JSON object containing 2 fields, "additional_context_summarized" and "suggested_response_categories".
-                            "additional_context_summarized" should be a string with a summary (2 paragraphs at most) of the "Additional context" provided above.
-                            "suggested_response_categories" should be a list of strings, each representing a category of response that students might give to the question.
-                            Think carefully about what to include in "suggested_response_categories" so that every student sees their response categorized in a way that guides them to a better understanding of the topic.
-                        """)
-                    },
-                ],
-            )
-
-            db.collection('teachers').document(teacher_id).collection('lesson_plans').document(plan_id).collection('questions').document(question_id).set(question_data)
+        lesson_id = request.args.get('lesson_id')
+        question_data = request.get_json()
+        question_id = question_data['id']
+        if teacher_id is not None and lesson_id is not None and question_data is not None:
+            db.collection('teachers').document(teacher_id).collection(
+                'lesson_plans').document(lesson_id).collection(
+                    'questions').document(question_id).set(question_data)
             return "success"
         return https_fn.Response("invalid request", status=400)
     return https_fn.Response("method not allowed", status=400)
@@ -285,23 +219,29 @@ def deleteLessonQuestion(request: https_fn.Request):
 def putLesson(request: https_fn.Request):
     if request.method in ["POST", "PUT"]:
         teacher_id = request.args.get('teacher_id')
-        lesson_data: Lesson = request.get_json()
-        lesson_id = lesson_data.id
-        if teacher_id is not None and lesson_data is not None:
+        new_lesson: Lesson = request.get_json()
+        lesson_id = new_lesson.id
+        teacher_ref = db.collection('teachers').document(teacher_id)
+        if teacher_id is not None and new_lesson is not None:
+            lesson_ref = teacher_ref.collection('lessons').document(lesson_id)
+            old_lesson: Lesson = lesson_ref.get().to_dict()
+            # Save the lesson now that we have the old data in memory
+            teacher_ref.collection('lessons').document(lesson_id).set(new_lesson)
             # If the lesson exists, check if we're going from not locked to locked
-            lesson_ref = db.collection('teachers').document(teacher_id).collection('lessons').document(lesson_id)
-            lesson: Lesson = lesson_ref.get().to_dict()
-            if lesson is not None and not lesson.responses_locked and lesson_data.responses_locked:
-                lesson_data.analyzing = True
-                # In the background, do the anaylsis with the LLM
-                client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY.value)
-                tasks = []
-                for response in lesson_data.responses:
-                    tasks.append(process_student_response(client, response))
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                return loop.run_until_complete(asyncio.gather(*tasks))
-            db.collection('teachers').document(teacher_id).collection('lessons').document(lesson_id).set(lesson_data)
+            if old_lesson is not None and not old_lesson.responses_locked and new_lesson.responses_locked:
+                attempts_remaining = 15
+                # Analysis happens asynchronously when the student submits the response
+                # Poll until all responses are analyzed
+                while True:
+                    lesson_ref = teacher_ref.collection('lessons').document(lesson_id)
+                    responses = list(lesson_ref.collection('responses').stream())
+                    if attempts_remaining == 0:
+                        break
+                    if all(response.to_dict().get('analysis') for response in responses):
+                        break
+                    else:
+                        attempts_remaining -= 1
+                        asyncio.sleep(2)
             return "success"
         return https_fn.Response("invalid request", status=400)
     return https_fn.Response("method not allowed", status=400)
@@ -311,23 +251,71 @@ def putLessonResponse(request: https_fn.Request):
     if request.method in ["POST", "PUT"]:
         teacher_id = request.args.get('teacher_id')
         lesson_id = request.args.get('lesson_id')
-        response_data = request.get_json()
-        response_id = response_data['id']
-        if teacher_id is not None and lesson_id is not None and response_data is not None:
-            db.collection('teachers').document(teacher_id).collection('lessons').document(lesson_id).collection('responses').document(response_id).set(response_data)
+        response_data: LessonResponse = request.get_json()
+        # Look up the lesson
+        lesson: Lesson = db.collection('teachers').document(teacher_id).collection('lessons').document(lesson_id).get().to_dict()
+        # Look up the question via the lesson_plan
+        lesson_plan: LessonPlan = db.collection('teachers').document(teacher_id).collection(
+            'lesson_plans').document(lesson.lesson_plan_id).get().to_dict()
+        question_data = db.collection('teachers').document(teacher_id).collection(
+            'lesson_plans').document(lesson_plan.id).collection(
+                'questions').document(response_data.question_id).get().to_dict()
+
+        if teacher_id is not None and lesson_id is not None and question_data is not None:
+            question_id = question_data.id
+
+            # Save the response data
+            db.collection('teachers').document(teacher_id).collection(
+                'lessons').document(lesson_id).collection(
+                    'responses').document(question_id).set(
+                        response_data)
+            
+            # In the background, analyze it and save the analysis
+            asyncio.create_task(saveResponseAnalysis(teacher_id, lesson_id, question_id, question_data))
+
             return "success"
         return https_fn.Response("invalid request", status=400)
     return https_fn.Response("method not allowed", status=400)
 
-@https_fn.on_request()
-def putLessonAnalysis(request: https_fn.Request):
-    if request.method in ["POST", "PUT"]:
-        teacher_id = request.args.get('teacher_id')
-        lesson_id = request.args.get('lesson_id')
-        analysis_data = request.get_json()
-        analysis_id = analysis_data['id']
-        if teacher_id is not None and lesson_id is not None and analysis_data is not None:
-            db.collection('teachers').document(teacher_id).collection('lessons').document(lesson_id).collection('analysis').document(analysis_id).set(analysis_data)
-            return "success"
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+def saveResponseAnalysis(
+    teacher_id: str,
+    lesson_id: str,
+    resp_id: str,
+    question_data: LessonQuestion,
+):
+    # First, ask the LLM to analyze the question
+    client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY.value)
+    additional_ctx = "Additional context: none provided"
+    if question_data.additional_context is not None and question_data.additional_context != "":
+        additional_ctx = "\n".join([
+            "Additional context:",
+            "Use the following material from the curriculum to inform your analysis:\n",
+            "----- BEGIN SUPPORTING MATERIAL -----",
+            "{question_data.additional_context}",
+            "----- END SUPPORTING MATERIAL -----",
+        ])
+    message = client.messages.create(
+        model="claude-3-5-sonnet-20240620",
+        max_tokens=1024,
+        messages=[
+            {
+                "role": "user",
+                "content": dedent(f"""\
+                    I am teaching my {question_data.field_of_study} class about {question_data.specific_topic}.
+
+                    {additional_ctx}
+
+                    Now please analyze the following question: "{question_data.additional_context}"
+
+                    Respond with a single JSON object containing 2 fields, "additional_context_summarized" and "suggested_response_categories".
+                    "additional_context_summarized" should be a string with a summary (2 paragraphs at most) of the "Additional context" provided above.
+                    "suggested_response_categories" should be a list of strings, each representing a category of response that students might give to the question.
+                    Think carefully about what to include in "suggested_response_categories" so that every student sees their response categorized in a way that guides them to a better understanding of the topic.
+                """)
+            },
+        ],
+    )
+    db.collection('teachers').document(teacher_id).collection(
+        'lessons').document(lesson_id).collection(
+            'responses').document(resp_id).set(
+                {'analysis': message.content[0].text}, merge=True)
