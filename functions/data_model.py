@@ -58,7 +58,6 @@ class Lesson:
     responses_locked: bool
     student_names_started: Optional[List[str]]
     responses: Optional[List['LessonResponse']]
-    analyzing: bool
 
 @dataclass
 class LessonResponse:

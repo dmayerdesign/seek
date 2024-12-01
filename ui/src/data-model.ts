@@ -6,9 +6,9 @@ export interface Teacher {
 
 export interface TeacherData extends Teacher {
 	classes: Class[]
-	// lesson_plans: LessonPlan[]
-	// lessons: Lesson[]
-	// media_content: MediaContent[]
+	lesson_plans: LessonPlan[]
+	lessons: Lesson[]
+	media_content: MediaContent[]
 }
 
 export interface Class {
@@ -58,7 +58,6 @@ export interface Lesson {
 	responses_locked: boolean
 	student_names_started?: string[]
 	responses?: LessonResponse[]
-	analyzing: boolean
 }
 
 export interface LessonResponse {

@@ -98,6 +98,23 @@ button {
 .dark button {
 	color: #adc9e4 !important;
 }
+.large-button,
+.large-select,
+.large-input {
+	width: 100%;
+	margin-top: 10px;
+	margin-bottom: 10px;
+	padding: 10px 10px;
+	border-radius: 1.5rem;
+}
+.light .large-button {
+	background: #225788;
+	color: #adc9e4 !important;
+}
+.dark .large-button {
+	background: #adc9e4;
+	color: #225788 !important;
+}
 h1,
 h2,
 h3,
