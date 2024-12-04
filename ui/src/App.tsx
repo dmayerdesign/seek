@@ -1,6 +1,8 @@
 import { FirebaseApp, initializeApp } from "firebase/app"
 import { useEffect, useState } from "react"
 import { Outlet } from "react-router-dom"
+import { AppCtx } from "./data-model"
+import { getAuth, User } from "firebase/auth"
 
 const App: React.FC = () => {
 	const [firebaseApp, setFirebaseApp] = useState<FirebaseApp>()
@@ -17,49 +19,22 @@ const App: React.FC = () => {
 		)
 	}, [])
 
-	// const auth = useMemo(() => {
-	// 	if (firebaseApp) {
-	// 		return getAuth(firebaseApp)
-	// 	}
-	// }, [firebaseApp])
-	// const [authUI, setAuthUI] = useState<firebaseui.auth.AuthUI>()
-	// useEffect(() => {
-	// 	if (auth && !authUI) {
-	// 		setAuthUI(new firebaseui.auth.AuthUI(auth))
-	// 	}
-	// }, [auth])
-	// const user = useMemo(() => {
-	// 	// FIXME: Using a fake user for now
-	// 	// return auth?.currentUser
-	// 	return {
-	// 	displayName: "Test Teacher",
-	// 	email: "test-teacher@test.com",
-	// 	uid: "test-teacher",
-	// 	}
-	// }, [auth, auth?.currentUser])
-	// const uiConfig: firebaseui.auth.Config = {
-	// 	signInOptions: [
-	// 		{
-	// 			provider: EmailAuthProvider.PROVIDER_ID,
-	// 			signInMethod: EmailAuthProvider.EMAIL_LINK_SIGN_IN_METHOD,
-	// 			forceSameDevice: true,
-	// 		},
-	// 	],
-	// 	tosUrl: import.meta.env.VITE_APP_URL + "/terms",
-	// 	privacyPolicyUrl: import.meta.env.VITE_APP_URL + "/terms",
-	// }
-	// useEffect(() => {
-	// 	console.log("import.meta.env.VITE_APP_URL", import.meta.env.VITE_APP_URL)
-	// 	if (auth && !user) {
-	// 		authUI?.start("#firebaseui-auth-container", uiConfig)
-	// 	}
-	// }, [user, authUI])
+	const [user, setUser] = useState<User|null|undefined>(undefined)
+	useEffect(() => {
+		if (firebaseApp) {
+			getAuth(firebaseApp).onAuthStateChanged((user) => {
+				setUser(user)
+			})
+		}
+	}, [firebaseApp])
 
 	return (
 		firebaseApp && (
-			<div className="app">
-				<Outlet />
-			</div>
+			<AppCtx.Provider value={{ firebaseApp, user }}>
+				<div className="app">
+					<Outlet />
+				</div>
+			</AppCtx.Provider>
 		)
 	)
 }

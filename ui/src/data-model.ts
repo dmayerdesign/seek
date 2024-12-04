@@ -1,5 +1,10 @@
+import { FirebaseApp } from "firebase/app"
+import { User } from "firebase/auth"
+import { createContext } from "react"
+
 export interface Teacher {
 	id: string
+	user_id: string
 	nickname: string
 	email_address: string
 }
@@ -20,6 +25,8 @@ export interface Class {
 
 export interface Student {
 	id: string
+	class_id: string
+	teacher_email: string
 	nickname: string
 	notes: string
 }
@@ -34,6 +41,7 @@ export interface LessonPlan {
 
 export interface LessonQuestion {
 	id: string
+	teacher_email: string
 	body_text: string
 	field_of_study: string
 	specific_topic: string
@@ -62,6 +70,7 @@ export interface Lesson {
 
 export interface LessonResponse {
 	id: string
+	teacher_email: string
 	student_id: string
 	student_name: string
 	lesson_question_id: string
@@ -82,4 +91,13 @@ export interface LessonResponseAnalysis {
 export interface MediaContent {
 	id: string // This matches the filename like "/mediaContent/{id}/some-file.png"
 	deleted: boolean
+}
+
+/**
+ * UI-only data model
+ */
+export const AppCtx = createContext<AppContext|null>(null)
+export interface AppContext {
+	firebaseApp: FirebaseApp
+	user: User | null | undefined
 }

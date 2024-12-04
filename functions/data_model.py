@@ -4,6 +4,7 @@ from typing import List, Optional
 @dataclass
 class Teacher:
     id: str
+    user_id: str
     nickname: str
     email_address: str
 
@@ -17,6 +18,8 @@ class Class:
 @dataclass
 class Student:
     id: str
+    class_id: str
+    teacher_email: str
     nickname: str
     notes: str
 
@@ -32,6 +35,7 @@ class LessonPlan:
 @dataclass
 class LessonQuestion:
     id: str
+    teacher_email: str
     body_text: str
     field_of_study: str
     specific_topic: str
@@ -62,6 +66,7 @@ class Lesson:
 @dataclass
 class LessonResponse:
     id: str
+    teacher_email: str
     student_id: str
     student_name: str
     lesson_question_id: str

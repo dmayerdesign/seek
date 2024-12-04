@@ -55,21 +55,63 @@ header {
 }
 
 section {
-	padding: 1rem 0;
+	padding: 2rem 0;
 }
 
-.light .seek-page {
-	background: #fff;
-
+.light {
+	.seek-page {
+		background: #fff;
+	}
 	* {
 		color: #222;
 	}
+	h2 {
+		color: #333;
+	}
+	h3 {
+		color: #444;
+	}
+	hr {
+		height: 1px;
+		color: #e1e3e3;
+		background: #e1e3e3;
+		font-size: 0;
+		border: 0;
+	}
+	button, a {
+		color: #286ba9 !important;
+	}
+	.large-button {
+		background: #286ba9;
+		color: #adc9e4 !important;
+	}
 }
-.dark .seek-page {
-	background: #222;
-
+.dark {
+	.seek-page {
+		background: #222;
+	}
 	* {
 		color: #f9fafb;
+	}
+	h2 {
+		color: #ddd;
+	}
+	h3 {
+		color: #aaa;
+	}
+	hr {
+		height: 1px;
+		color: #333;
+		background: #333;
+		font-size: 0;
+		border: 0;
+	}
+	button, a {
+		color: #adc9e4 !important;
+	}
+	.large-button {
+		background: #adc9e4;
+		color: #286ba9 !important;
 	}
 }
 
@@ -83,20 +125,20 @@ section {
 	width: 1px;
 }
 
-body * {
+body {
 	font-size: 1.5rem;
+}
+button,
+input,
+p {
+	font-size: inherit;
 }
 button {
 	background: transparent;
 	border: none;
 	font-weight: bold;
 	cursor: pointer;
-}
-.light button {
-	color: #225788 !important;
-}
-.dark button {
-	color: #adc9e4 !important;
+	font-size: 1.5rem;
 }
 .large-button,
 .large-select,
@@ -106,14 +148,6 @@ button {
 	margin-bottom: 10px;
 	padding: 10px 10px;
 	border-radius: 1.5rem;
-}
-.light .large-button {
-	background: #225788;
-	color: #adc9e4 !important;
-}
-.dark .large-button {
-	background: #adc9e4;
-	color: #225788 !important;
 }
 h1,
 h2,
@@ -135,11 +169,9 @@ h1 {
 }
 h2 {
 	font-size: 2.4rem;
-	color: #333;
 }
 h3 {
 	font-size: 2rem;
-	color: #444;
 }
 
 input,
@@ -162,6 +194,10 @@ textarea {
 .dark .input {
 	background: #444;
 	color: #f9fafb;
+}
+label + input {
+	display: block;
+    margin-top: 10px;
 }
 
 ul {

@@ -1,15 +1,14 @@
 # The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
 from textwrap import dedent
-from typing import List
+from typing import Any, Dict, List
 from firebase_functions import https_fn, options
-from firebase_functions.params import IntParam, StringParam
-from google.cloud.firestore_v1 import FieldFilter
+from firebase_functions.params import StringParam
+from google.cloud.firestore_v1 import FieldFilter, DocumentReference, CollectionReference
 # The Firebase Admin SDK to access Cloud Firestore.
-from firebase_admin import initialize_app
-from firebase_admin import firestore
+from firebase_admin import initialize_app, firestore, auth
 import asyncio
 from anthropic import AsyncAnthropic
-from data_model import Lesson, LessonPlan, LessonQuestion, LessonResponse
+from data_model import Lesson, LessonPlan, LessonQuestion, LessonResponse, Teacher, Class
 # from functions import data_model
 
 # OPENAI_API_KEY = StringParam("OPENAI_API_KEY")
@@ -30,7 +29,7 @@ async def ask_about_topic(client: AsyncAnthropic, topic: str):
     return message.content[0].text
 
 @https_fn.on_request()
-def anthropic_test(request: https_fn.Request):
+def anthropic_test(request: https_fn.CallableRequest):
     client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY.value)
     request_args = request.args
 
@@ -71,213 +70,261 @@ def anthropic_test(request: https_fn.Request):
             return message.content
     return ""
 
-@https_fn.on_request(cors=options.CorsOptions(cors_origins=["*"], cors_methods=["GET"]))
-def getTeacherData(request: https_fn.Request):
-    if request.method == "GET":
-        teacher_id = request.args.get('teacher_id')
-        if teacher_id is not None:
-            teacher_ref = db.collection('teachers').document(teacher_id)
-            teacher_data = teacher_ref.get().to_dict()
-            classes = list(teacher_ref.collection('classes').stream())
-            if len(classes) > 0:
-                teacher_data['classes'] = [classes[i].to_dict() for i in range(len(classes))]
-                for cls in teacher_data['classes']:
-                    students = list(teacher_ref.collection('classes').document(cls['id']).collection('students').stream())
-                    if len(students) > 0:
-                        cls['students'] = [students[i].to_dict() for i in range(len(students))]
-            return teacher_data
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+######### Queries
 
-@https_fn.on_request()
-def getLessonPlans(request: https_fn.Request):
-    if request.method == "GET":
-        teacher_id = request.args.get('teacher_id')
-        if teacher_id is not None:
-            plans = db.collection('teachers').document(teacher_id).collection('lesson_plans').stream()
-            return [plan.to_dict() for plan in plans]
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+@https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
+def getTeacherData(request: https_fn.CallableRequest):
+    if request.auth is None:
+        raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.UNAUTHENTICATED, message="login required")
 
-@https_fn.on_request()
-def getLessons(request: https_fn.Request):
-    if request.method == "GET":
-        teacher_id = request.args.get('teacher_id')
-        if teacher_id is not None:
-            lessons = db.collection('teachers').document(teacher_id).collection('lessons').stream()
-            return [lesson.to_dict() for lesson in lessons]
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+    # Look up the teacher
+    teacher_id = request.data.get('teacher_id')
+    email_address = request.data.get('email_address')
+    teacher_data: Teacher = None
+    teacher_ref: DocumentReference = None
+    if teacher_id is not None:
+        teacher_ref = db.collection('teachers').document(teacher_id)
+        teacher_data = teacher_ref.get().to_dict()
+    elif email_address is not None:
+        teachers = list(db.collection('teachers').where(filter=FieldFilter('email_address', '==', email_address)).stream())
+        if len(teachers) == 0:
+            raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.NOT_FOUND, message="not found")
+        teacher_data = teachers[0].to_dict()
+    if teacher_data is None:
+        raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.NOT_FOUND, message="not found")
 
-@https_fn.on_request()
-def getLesson(request: https_fn.Request):
-    if request.method == "GET":
-        lesson_id = request.args.get('lesson_id')
-        if lesson_id is not None:
-            return db.collection('lessons').document(lesson_id).get().to_dict()
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+    # Look up their classes
+    teacher_id = teacher_data.get('id')
+    teacher_ref = teacher_ref or db.collection('teachers').document(teacher_id)
+    classes = list(teacher_ref.collection('classes').stream())
+    if len(classes) > 0:
+        classes: List[Class] = [classes[i].to_dict() for i in range(len(classes))]
+        teacher_data['classes'] = classes
+        for cls in classes:
+            students = list(teacher_ref.collection('classes').document(cls.get('id')).collection('students').stream())
+            if len(students) > 0:
+                cls['students'] = [students[i].to_dict() for i in range(len(students))]
+        return teacher_data
 
-@https_fn.on_request()
-def putTeacher(request: https_fn.Request):
-    if request.method in ["POST", "PUT"]:
-        teacher_data = request.get_json()
-        teacher_id = teacher_data['id']
-        if teacher_id is not None:
-            db.collection('teachers').document(teacher_id).set(teacher_data)
+    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.NOT_FOUND, message="not found")
+
+@https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
+def getLessonPlans(request: https_fn.CallableRequest):
+    if request.auth is not None:
+        user: auth.UserRecord = auth.get_user(request.auth.uid)
+        if user is not None and user.email is not None:
+            teacherMatches = list(db.collection('teachers').where('email_address', '==', user.email).stream())
+            if len(teacherMatches) == 1:
+                teacher: Teacher = teacherMatches[0].to_dict()
+                if teacher is not None and teacher.get('id') is not None:
+                    plans = db.collection('teachers').document(teacher.get('id')).collection('lesson_plans').stream()
+                    return [plan.to_dict() for plan in plans]
+    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
+
+@https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
+def getLessons(request: https_fn.CallableRequest):
+    teacher_id = request.data.get('teacher_id')
+    if teacher_id is not None:
+        lessons = db.collection('teachers').document(teacher_id).collection('lessons').stream()
+        return [lesson.to_dict() for lesson in lessons]
+    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
+
+@https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
+def getLesson(request: https_fn.CallableRequest):
+    lesson_id = request.data.get('lesson_id')
+    if lesson_id is not None:
+        return db.collection('lessons').document(lesson_id).get().to_dict()
+    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
+
+
+######### Commands
+
+@https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
+def putTeacher(request: https_fn.CallableRequest):
+    if request.auth is not None and request.auth.uid is not None:
+        teacher_data: Teacher = request.data
+        if teacher_data is not None and teacher_data.get('id') is not None:
+            db.collection('teachers').document(teacher_data.get('id')).set(document_data=teacher_data, merge=True)
             return "success"
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+    raise https_fn.HttpsError(code=401, message="login required")
 
-@https_fn.on_request()
-def putClass(request: https_fn.Request):
-    if request.method in ["POST", "PUT"]:
-        teacher_id = request.args.get('teacher_id')
-        class_data = request.get_json()
-        if teacher_id is not None and class_data is not None:
-            db.collection('teachers').document(teacher_id).collection('classes').document(class_data['id']).set(class_data)
-            return "success"
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+@https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
+def putClass(request: https_fn.CallableRequest):
+    if request.auth is not None:
+        user: auth.UserRecord = auth.get_user(request.auth.uid)
+        if user is not None and user.email is not None:
+            teacherMatches = list(db.collection('teachers').where('email_address', '==', user.email).stream())
+            if len(teacherMatches) == 1:
+                teacher: Teacher = teacherMatches[0].to_dict()
+                teacher_id = teacher.get('id')
+                class_data: Dict[str, Any] = request.data
+                class_id = class_data.get('id')
+                if teacher is not None and teacher_id is not None and class_id is not None:
+                    classes_coll: CollectionReference = db.collection('teachers').document(teacher_id).collection('classes')
+                    classes_coll.document(class_id).set(document_data=class_data, merge=True)
+                    return "success"
+        raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
+    
+@https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
+def deleteClass(request: https_fn.CallableRequest):
+    if request.auth is not None:
+        user: auth.UserRecord = auth.get_user(request.auth.uid)
+        if user is not None and user.email is not None:
+            teacherMatches = list(db.collection('teachers').where('email_address', '==', user.email).stream())
+            if len(teacherMatches) == 1:
+                teacher: Teacher = teacherMatches[0].to_dict()
+                teacher_id = teacher.get('id')
+                class_id = request.data.get('id')
+                if teacher is not None and teacher_id is not None and class_id is not None:
+                    classes_coll: CollectionReference = db.collection('teachers').document(teacher_id).collection('classes')
+                    classes_coll.document(class_id).delete()
+                    return "success"
+        raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
-@https_fn.on_request()
-def putStudent(request: https_fn.Request):
-    if request.method in ["POST", "PUT"]:
-        teacher_id = request.args.get('teacher_id')
-        class_id = request.args.get('class_id')
-        student_data = request.get_json()
-        if teacher_id is not None and class_id is not None and student_data is not None:
-            db.collection('teachers').document(teacher_id).collection('classes').document(class_id).collection('students').document(student_data['id']).set(student_data)
-            return "success"
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+@https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
+def putStudent(request: https_fn.CallableRequest):
+    if request.auth is not None:
+        user: auth.UserRecord = auth.get_user(request.auth.uid)
+        if user is not None and user.email is not None:
+            teacherMatches = list(db.collection('teachers').where('email_address', '==', user.email).stream())
+            if len(teacherMatches) == 1:
+                teacher = teacherMatches[0].to_dict()
+                teacher_id = teacher.get('id')
+                class_id = request.data.get('class_id')
+                student_data: Dict[str, Any] = request.data
+                student_id = student_data.get('id')
+                if teacher_id is not None and class_id is not None and student_id is not None:
+                    classes_coll: CollectionReference = db.collection('teachers').document(teacher_id).collection('classes')
+                    students_coll: CollectionReference = classes_coll.document(class_id).collection('students')
+                    students_coll.document(student_id).set(document_data=student_data, merge=True)
+                    return "success"
 
-@https_fn.on_request()
-def deleteStudent(request: https_fn.Request):
-    if request.method in ["POST", "DELETE"]:
-        teacher_id = request.args.get('teacher_id')
-        class_id = request.args.get('class_id')
-        student_id = request.args.get('student_id')
-        if teacher_id is not None and class_id is not None and student_id is not None:
-            db.collection('teachers').document(teacher_id).collection('classes').document(class_id).collection('students').document(student_id).delete()
-            return "success"
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
-@https_fn.on_request()
-def putLessonPlan(request: https_fn.Request):
-    if request.method in ["POST", "PUT"]:
-        teacher_id = request.args.get('teacher_id')
-        plan_data = request.get_json()
-        plan_id = plan_data['id']
-        if teacher_id is not None and plan_data is not None:
-            db.collection('teachers').document(teacher_id).collection('lesson_plans').document(plan_id).set(plan_data)
-            return "success"
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+@https_fn.on_request(cors=options.CorsOptions(cors_origins=["*"], cors_methods=["DELETE"]))
+def deleteStudent(request: https_fn.CallableRequest):
+    if request.auth is not None:
+        user: auth.UserRecord = auth.get_user(request.auth.uid)
+        if user is not None and user.email is not None:
+            teacherMatches = list(db.collection('teachers').where('email_address', '==', user.email).stream())
+            if len(teacherMatches) == 1:
+                teacher = teacherMatches[0].to_dict()
+                teacher_id = teacher.get('id')
+                class_id = request.data.get('class_id')
+                student_id = request.data.get('id')
+                if teacher_id is not None and class_id is not None and student_id is not None:
+                    classes_coll: CollectionReference = db.collection('teachers').document(teacher_id).collection('classes')
+                    students_coll: CollectionReference = classes_coll.document(class_id).collection('students')
+                    students_coll.document(student_id).delete()
+                    return "success"
+    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
-@https_fn.on_request()
-def deleteLessonPlan(request: https_fn.Request):
-    if request.method in ["POST", "DELETE"]:
-        teacher_id = request.args.get('teacher_id')
-        plan_id = request.args.get('plan_id')
-        if teacher_id is not None and plan_id is not None:
-            db.collection('teachers').document(teacher_id).collection('lesson_plans').document(plan_id).delete()
-            return "success"
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+@https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
+def putLessonPlan(request: https_fn.CallableRequest):
+    teacher_id = request.data.get('teacher_id')
+    plan_data = request.data
+    plan_id = plan_data['id']
+    if teacher_id is not None and plan_data is not None:
+        db.collection('teachers').document(teacher_id).collection('lesson_plans').document(plan_id).set(plan_data)
+        return "success"
+    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
-@https_fn.on_request()
-def putLessonQuestion(request: https_fn.Request):
-    if request.method in ["POST", "PUT"]:
-        teacher_id = request.args.get('teacher_id')
-        lesson_id = request.args.get('lesson_id')
-        question_data = request.get_json()
-        question_id = question_data['id']
-        if teacher_id is not None and lesson_id is not None and question_data is not None:
-            db.collection('teachers').document(teacher_id).collection(
-                'lesson_plans').document(lesson_id).collection(
-                    'questions').document(question_id).set(question_data)
-            return "success"
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+@https_fn.on_request(cors=options.CorsOptions(cors_origins=["*"], cors_methods=["DELETE"]))
+def deleteLessonPlan(request: https_fn.CallableRequest):
+    teacher_id = request.data.get('teacher_id')
+    plan_id = request.data.get('plan_id')
+    if teacher_id is not None and plan_id is not None:
+        db.collection('teachers').document(teacher_id).collection('lesson_plans').document(plan_id).delete()
+        return "success"
+    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
-@https_fn.on_request()
-def deleteLessonQuestion(request: https_fn.Request):
-    if request.method in ["POST", "DELETE"]:
-        teacher_id = request.args.get('teacher_id')
-        plan_id = request.args.get('plan_id')
-        question_id = request.args.get('question_id')
-        if teacher_id is not None and plan_id is not None and question_id is not None:
-            db.collection('teachers').document(teacher_id).collection('lesson_plans').document(plan_id).collection('questions').document(question_id).delete()
-            return "success"
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+@https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
+def putLessonQuestion(request: https_fn.CallableRequest):
+    teacher_id = request.data.get('teacher_id')
+    lesson_id = request.data.get('lesson_id')
+    question_data = request.data
+    question_id = question_data['id']
+    if teacher_id is not None and lesson_id is not None and question_data is not None:
+        db.collection('teachers').document(teacher_id).collection(
+            'lesson_plans').document(lesson_id).collection(
+                'questions').document(question_id).set(question_data)
+        return "success"
+    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
+
+@https_fn.on_request(cors=options.CorsOptions(cors_origins=["*"], cors_methods=["DELETE"]))
+def deleteLessonQuestion(request: https_fn.CallableRequest):
+    teacher_id = request.data.get('teacher_id')
+    plan_id = request.data.get('plan_id')
+    question_id = request.data.get('question_id')
+    if teacher_id is not None and plan_id is not None and question_id is not None:
+        db.collection('teachers').document(teacher_id).collection('lesson_plans').document(plan_id).collection('questions').document(question_id).delete()
+        return "success"
+    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
 # Lock answers and do analysis, return when done
-@https_fn.on_request()
-def putLesson(request: https_fn.Request):
-    if request.method in ["POST", "PUT"]:
-        teacher_id = request.args.get('teacher_id')
-        new_lesson: Lesson = request.get_json()
-        lesson_id = new_lesson.id
-        teacher_ref = db.collection('teachers').document(teacher_id)
-        if teacher_id is not None and new_lesson is not None:
-            lesson_ref = teacher_ref.collection('lessons').document(lesson_id)
-            old_lesson: Lesson = lesson_ref.get().to_dict()
-            # Save the lesson now that we have the old data in memory
-            teacher_ref.collection('lessons').document(lesson_id).set(new_lesson)
-            # If the lesson exists, check if we're going from not locked to locked
-            if old_lesson is not None and not old_lesson.responses_locked and new_lesson.responses_locked:
-                attempts_remaining = 15
-                # Analysis happens asynchronously when the student submits the response
-                # Poll until all responses are analyzed
-                while True:
-                    lesson_ref = teacher_ref.collection('lessons').document(lesson_id)
-                    responses = list(lesson_ref.collection('responses').stream())
-                    if attempts_remaining == 0:
-                        break
-                    if all(response.to_dict().get('analysis') for response in responses):
-                        break
-                    else:
-                        attempts_remaining -= 1
-                        asyncio.sleep(2)
-            return "success"
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+@https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
+def putLesson(request: https_fn.CallableRequest):
+    teacher_id = request.data.get('teacher_id')
+    new_lesson: Dict[str, Any] = request.data
+    lesson_id = new_lesson.get('id')
+    teacher_ref = db.collection('teachers').document(teacher_id)
+    if teacher_id is not None and new_lesson is not None:
+        lesson_ref = teacher_ref.collection('lessons').document(lesson_id)
+        old_lesson: Lesson = lesson_ref.get().to_dict()
+        # Save the lesson now that we have the old data in memory
+        teacher_ref.collection('lessons').document(lesson_id).set(new_lesson)
+        # If the lesson existed (this is an update, not a create), check if we're going from not locked to locked
+        if old_lesson is not None and not old_lesson.responses_locked and new_lesson.responses_locked:
+            attempts_remaining = 15
+            # Analysis happens asynchronously when the student submits the response
+            # Poll until all responses are analyzed
+            while True:
+                lesson_ref = teacher_ref.collection('lessons').document(lesson_id)
+                responses = list(lesson_ref.collection('responses').stream())
+                if attempts_remaining == 0:
+                    break
+                if all(
+                    response.to_dict().get('analysis') is not None
+                    and response.to_dict().get('analysis') is not ''
+                    for response in responses
+                ):
+                    break
+                else:
+                    attempts_remaining -= 1
+                    asyncio.sleep(2)
+        return "success"
+    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
-@https_fn.on_request()
-def putLessonResponse(request: https_fn.Request):
-    if request.method in ["POST", "PUT"]:
-        teacher_id = request.args.get('teacher_id')
-        lesson_id = request.args.get('lesson_id')
-        response_data: LessonResponse = request.get_json()
-        # Look up the lesson
-        lesson: Lesson = db.collection('teachers').document(teacher_id).collection('lessons').document(lesson_id).get().to_dict()
-        # Look up the question via the lesson_plan
-        lesson_plan: LessonPlan = db.collection('teachers').document(teacher_id).collection(
-            'lesson_plans').document(lesson.lesson_plan_id).get().to_dict()
-        question_data = db.collection('teachers').document(teacher_id).collection(
-            'lesson_plans').document(lesson_plan.id).collection(
-                'questions').document(response_data.question_id).get().to_dict()
+@https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
+def putLessonResponse(request: https_fn.CallableRequest):
+    teacher_id = request.data.get('teacher_id')
+    lesson_id = request.data.get('lesson_id')
+    response_data: LessonResponse = request.data
+    # Look up the lesson
+    lesson: Lesson = db.collection('teachers').document(teacher_id).collection('lessons').document(lesson_id).get().to_dict()
+    # Look up the question via the lesson_plan
+    lesson_plan: LessonPlan = db.collection('teachers').document(teacher_id).collection(
+        'lesson_plans').document(lesson.lesson_plan_id).get().to_dict()
+    question_data = db.collection('teachers').document(teacher_id).collection(
+        'lesson_plans').document(lesson_plan.get('id')).collection(
+            'questions').document(response_data.question_id).get().to_dict()
 
-        if teacher_id is not None and lesson_id is not None and question_data is not None:
-            question_id = question_data.id
+    if teacher_id is not None and lesson_id is not None and question_data is not None:
+        question_id = question_data.get('id')
 
-            # Save the response data
-            db.collection('teachers').document(teacher_id).collection(
-                'lessons').document(lesson_id).collection(
-                    'responses').document(question_id).set(
-                        response_data)
-            
-            # In the background, analyze it and save the analysis
-            asyncio.create_task(saveResponseAnalysis(teacher_id, lesson_id, question_id, question_data))
+        # Save the response data
+        db.collection('teachers').document(teacher_id).collection(
+            'lessons').document(lesson_id).collection(
+                'responses').document(question_id).set(
+                    response_data)
+        
+        # In the background, analyze it and save the analysis
+        asyncio.create_task(analyzeLessonResponse(teacher_id, lesson_id, question_id, question_data))
 
-            return "success"
-        return https_fn.Response("invalid request", status=400)
-    return https_fn.Response("method not allowed", status=400)
+        return "success"
+    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
-def saveResponseAnalysis(
+def analyzeLessonResponse(
     teacher_id: str,
     lesson_id: str,
     resp_id: str,
