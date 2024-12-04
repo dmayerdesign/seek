@@ -8,6 +8,9 @@
                 {
                     "id": "lesson_plan_1",
                     "topic": "Introduction to the Microscope",
+                    "media_content_ids": [
+                                "media/lesson_plan_1.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_1_question_1",
@@ -41,6 +44,9 @@
                 {
                     "id": "lesson_plan_2",
                     "topic": "Observing Plant and Animal Cells",
+                    "media_content_ids": [
+                                "media/lesson_plan_2.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_2_question_1",
@@ -74,6 +80,9 @@
                 {
                     "id": "lesson_plan_3",
                     "topic": "Cell Size and Diffusion",
+                    "media_content_ids": [
+                                "media/lesson_plan_3.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_3_question_1",
@@ -107,6 +116,9 @@
                 {
                     "id": "lesson_plan_4",
                     "topic": "Cell Membrane Structure and Function",
+                    "media_content_ids": [
+                                "media/lesson_plan_4.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_4_question_1",
@@ -140,6 +152,9 @@
                 {
                     "id": "lesson_plan_5",
                     "topic": "Osmosis and Tonicity",
+                    "media_content_ids": [
+                                "media/lesson_plan_5.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_5_question_1",
@@ -173,6 +188,9 @@
                 {
                     "id": "lesson_plan_6",
                     "topic": "Enzyme Activity",
+                    "media_content_ids": [
+                                "media/lesson_plan_6.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_6_question_1",
@@ -206,6 +224,9 @@
                 {
                     "id": "lesson_plan_7",
                     "topic": "Mitosis and the Cell Cycle",
+                    "media_content_ids": [
+                                "media/lesson_plan_7.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_7_question_1",
@@ -239,6 +260,9 @@
                 {
                     "id": "lesson_plan_8",
                     "topic": "Meiosis and Genetic Variation",
+                    "media_content_ids": [
+                                "media/lesson_plan_8.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_8_question_1",
@@ -272,6 +296,9 @@
                 {
                     "id": "lesson_plan_9",
                     "topic": "Cellular Respiration",
+                    "media_content_ids": [
+                                "media/lesson_plan_9.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_9_question_1",
@@ -305,6 +332,9 @@
                 {
                     "id": "lesson_plan_10",
                     "topic": "Photosynthesis",
+                    "media_content_ids": [
+                                "media/lesson_plan_10.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_10_question_1",
@@ -345,6 +375,9 @@
                 {
                     "id": "lesson_plan_11",
                     "topic": "Plant Cell Anatomy",
+                    "media_content_ids": [
+                                "media/lesson_plan_11.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_11_question_1",
@@ -378,6 +411,9 @@
                 {
                     "id": "lesson_plan_12",
                     "topic": "Photosynthesis Process",
+                    "media_content_ids": [
+                                "media/lesson_plan_12.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_12_question_1",
@@ -411,6 +447,9 @@
                 {
                     "id": "lesson_plan_13",
                     "topic": "Plant Tissues and Organs",
+                    "media_content_ids": [
+                                "media/lesson_plan_13.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_13_question_1",
@@ -444,6 +483,9 @@
                 {
                     "id": "lesson_plan_14",
                     "topic": "Plant Reproduction",
+                    "media_content_ids": [
+                                "media/lesson_plan_14.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_14_question_1",
@@ -477,6 +519,9 @@
                 {
                     "id": "lesson_plan_15",
                     "topic": "Plant Growth and Development",
+                    "media_content_ids": [
+                                "media/lesson_plan_15.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_15_question_1",
@@ -510,6 +555,9 @@
                 {
                     "id": "lesson_plan_16",
                     "topic": "Transpiration and Water Transport",
+                    "media_content_ids": [
+                                "media/lesson_plan_16.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_16_question_1",
@@ -543,6 +591,9 @@
                 {
                     "id": "lesson_plan_17",
                     "topic": "Plant Nutrition and Soil",
+                    "media_content_ids": [
+                                "media/lesson_plan_17.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_17_question_1",
@@ -576,6 +627,9 @@
                 {
                     "id": "lesson_plan_18",
                     "topic": "Plant Responses to the Environment",
+                    "media_content_ids": [
+                                "media/lesson_plan_18.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_18_question_1",
@@ -609,6 +663,9 @@
                 {
                     "id": "lesson_plan_19",
                     "topic": "Photosynthetic Pigments",
+                    "media_content_ids": [
+                                "media/lesson_plan_19.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_19_question_1",
@@ -642,6 +699,9 @@
                 {
                     "id": "lesson_plan_20",
                     "topic": "Plant Hormones",
+                    "media_content_ids": [
+                                "media/lesson_plan_20.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_20_question_1",
@@ -682,6 +742,9 @@
                 {
                     "id": "lesson_plan_21",
                     "topic": "Introduction to Genetics",
+                    "media_content_ids": [
+                                "media/lesson_plan_21.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_21_question_1",
@@ -715,6 +778,9 @@
                 {
                     "id": "lesson_plan_22",
                     "topic": "Monohybrid Crosses",
+                    "media_content_ids": [
+                                "media/lesson_plan_22.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_22_question_1",
@@ -748,6 +814,9 @@
                 {
                     "id": "lesson_plan_23",
                     "topic": "Dihybrid Crosses",
+                    "media_content_ids": [
+                                "media/lesson_plan_23.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_23_question_1",
@@ -781,6 +850,9 @@
                 {
                     "id": "lesson_plan_24",
                     "topic": "Incomplete Dominance and Codominance",
+                    "media_content_ids": [
+                                "media/lesson_plan_24.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_24_question_1",
@@ -814,6 +886,9 @@
                 {
                     "id": "lesson_plan_25",
                     "topic": "Sex-Linked Traits",
+                    "media_content_ids": [
+                                "media/lesson_plan_25.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_25_question_1",
@@ -847,6 +922,9 @@
                 {
                     "id": "lesson_plan_26",
                     "topic": "Pedigree Analysis",
+                    "media_content_ids": [
+                                "media/lesson_plan_26.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_26_question_1",
@@ -880,6 +958,9 @@
                 {
                     "id": "lesson_plan_27",
                     "topic": "Genetic Disorders",
+                    "media_content_ids": [
+                                "media/lesson_plan_27.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_27_question_1",
@@ -913,6 +994,9 @@
                 {
                     "id": "lesson_plan_28",
                     "topic": "DNA Structure and Replication",
+                    "media_content_ids": [
+                                "media/lesson_plan_28.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_28_question_1",
@@ -946,6 +1030,9 @@
                 {
                     "id": "lesson_plan_29",
                     "topic": "Gene Expression and Regulation",
+                    "media_content_ids": [
+                                "media/lesson_plan_29.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_29_question_1",
@@ -979,6 +1066,9 @@
                 {
                     "id": "lesson_plan_30",
                     "topic": "Mutations and Their Effects",
+                    "media_content_ids": [
+                                "media/lesson_plan_30.png"
+                            ]
                     "questions": [
                         {
                             "id": "lesson_plan_30_question_1",
