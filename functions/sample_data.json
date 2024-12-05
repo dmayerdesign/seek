@@ -8,44 +8,39 @@
                 {
                     "id": "lesson_plan_1",
                     "topic": "Introduction to the Microscope",
-                    "media_content_ids": [
-                                "media/lesson_plan_1.png"
-                            ]
+                    "media_content_urls": [
+                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_1.pdf?alt=media&token=a95c5b7c-27fe-47e5-9dbd-8e5babafbd38",
+                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_1_question_1.pdf?alt=media&token=a2dc2fc2-ddbc-4b6d-b8bb-06b2782ee731",
+                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_1_question_2.png?alt=media&token=33456fa3-21d0-465b-a2b8-25c9779e5c32",
+                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_1_question_3.png?alt=media&token=13d6543c-331d-4d06-93fe-8a206414ac6f"        
+                    ]
                     "questions": [
                         {
                             "id": "lesson_plan_1_question_1",
                             "body_text": "What are the main parts of a light microscope and their functions?",
                             "field_of_study": "Biology",
                             "specific_topic": "Introduction to the Microscope",
-                            "media_content_ids": [
-                                "media/lesson_plan_1_question_1.png"
-                            ]
+
                         },
                         {
                             "id": "lesson_plan_1_question_2",
                             "body_text": "How do you properly focus a specimen under high power magnification?",
                             "field_of_study": "Biology",
                             "specific_topic": "Introduction to the Microscope",
-                            "media_content_ids": [
-                                "media/lesson_plan_1_question_2.png"
-                            ]
                         },
                         {
                             "id": "lesson_plan_1_question_3",
                             "body_text": "Why is it important to start with the lowest magnification when viewing a slide?",
                             "field_of_study": "Biology",
                             "specific_topic": "Introduction to the Microscope",
-                            "media_content_ids": [
-                                "media/lesson_plan_1_question_3.png"
-                            ]
                         }
                     ]
                 },
                 {
                     "id": "lesson_plan_2",
                     "topic": "Observing Plant and Animal Cells",
-                    "media_content_ids": [
-                                "media/lesson_plan_2.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_2"
                             ]
                     "questions": [
                         {
@@ -53,8 +48,8 @@
                             "body_text": "What are the key differences between plant and animal cells observed under a microscope?",
                             "field_of_study": "Biology",
                             "specific_topic": "Observing Plant and Animal Cells",
-                            "media_content_ids": [
-                                "media/lesson_plan_2_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_2_question_1"
                             ]
                         },
                         {
@@ -62,8 +57,8 @@
                             "body_text": "How does staining enhance the visibility of cellular structures?",
                             "field_of_study": "Biology",
                             "specific_topic": "Observing Plant and Animal Cells",
-                            "media_content_ids": [
-                                "media/lesson_plan_2_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_2_question_2"
                             ]
                         },
                         {
@@ -71,8 +66,8 @@
                             "body_text": "What precautions should be taken when preparing a wet mount slide?",
                             "field_of_study": "Biology",
                             "specific_topic": "Observing Plant and Animal Cells",
-                            "media_content_ids": [
-                                "media/lesson_plan_2_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_2_question_3"
                             ]
                         }
                     ]
@@ -80,8 +75,8 @@
                 {
                     "id": "lesson_plan_3",
                     "topic": "Cell Size and Diffusion",
-                    "media_content_ids": [
-                                "media/lesson_plan_3.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_3"
                             ]
                     "questions": [
                         {
@@ -89,8 +84,8 @@
                             "body_text": "Why are most cells microscopic in size?",
                             "field_of_study": "Biology",
                             "specific_topic": "Cell Size and Diffusion",
-                            "media_content_ids": [
-                                "media/lesson_plan_3_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_3_question_1"
                             ]
                         },
                         {
@@ -98,8 +93,8 @@
                             "body_text": "How does cell size affect the rate of diffusion?",
                             "field_of_study": "Biology",
                             "specific_topic": "Cell Size and Diffusion",
-                            "media_content_ids": [
-                                "media/lesson_plan_3_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_3_question_2"
                             ]
                         },
                         {
@@ -107,8 +102,8 @@
                             "body_text": "What is the significance of the surface area-to-volume ratio in cells?",
                             "field_of_study": "Biology",
                             "specific_topic": "Cell Size and Diffusion",
-                            "media_content_ids": [
-                                "media/lesson_plan_3_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_3_question_3"
                             ]
                         }
                     ]
@@ -116,8 +111,8 @@
                 {
                     "id": "lesson_plan_4",
                     "topic": "Cell Membrane Structure and Function",
-                    "media_content_ids": [
-                                "media/lesson_plan_4.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_4"
                             ]
                     "questions": [
                         {
@@ -125,8 +120,8 @@
                             "body_text": "What is the fluid mosaic model of the cell membrane?",
                             "field_of_study": "Biology",
                             "specific_topic": "Cell Membrane Structure and Function",
-                            "media_content_ids": [
-                                "media/lesson_plan_4_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_4_question_1"
                             ]
                         },
                         {
@@ -134,8 +129,8 @@
                             "body_text": "How do different types of molecules cross the cell membrane?",
                             "field_of_study": "Biology",
                             "specific_topic": "Cell Membrane Structure and Function",
-                            "media_content_ids": [
-                                "media/lesson_plan_4_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_4_question_2"
                             ]
                         },
                         {
@@ -143,8 +138,8 @@
                             "body_text": "Why is selective permeability important for cell survival?",
                             "field_of_study": "Biology",
                             "specific_topic": "Cell Membrane Structure and Function",
-                            "media_content_ids": [
-                                "media/lesson_plan_4_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_4_question_3"
                             ]
                         }
                     ]
@@ -152,8 +147,8 @@
                 {
                     "id": "lesson_plan_5",
                     "topic": "Osmosis and Tonicity",
-                    "media_content_ids": [
-                                "media/lesson_plan_5.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_5"
                             ]
                     "questions": [
                         {
@@ -161,8 +156,8 @@
                             "body_text": "How do hypertonic, hypotonic, and isotonic solutions affect animal cells?",
                             "field_of_study": "Biology",
                             "specific_topic": "Osmosis and Tonicity",
-                            "media_content_ids": [
-                                "media/lesson_plan_5_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_5_question_1"
                             ]
                         },
                         {
@@ -170,8 +165,8 @@
                             "body_text": "What is the role of osmosis in maintaining cell homeostasis?",
                             "field_of_study": "Biology",
                             "specific_topic": "Osmosis and Tonicity",
-                            "media_content_ids": [
-                                "media/lesson_plan_5_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_5_question_2"
                             ]
                         },
                         {
@@ -179,8 +174,8 @@
                             "body_text": "How can you experimentally determine the tonicity of a solution?",
                             "field_of_study": "Biology",
                             "specific_topic": "Osmosis and Tonicity",
-                            "media_content_ids": [
-                                "media/lesson_plan_5_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_5_question_3"
                             ]
                         }
                     ]
@@ -188,8 +183,8 @@
                 {
                     "id": "lesson_plan_6",
                     "topic": "Enzyme Activity",
-                    "media_content_ids": [
-                                "media/lesson_plan_6.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_6"
                             ]
                     "questions": [
                         {
@@ -197,8 +192,8 @@
                             "body_text": "What factors influence the rate of enzyme-catalyzed reactions?",
                             "field_of_study": "Biology",
                             "specific_topic": "Enzyme Activity",
-                            "media_content_ids": [
-                                "media/lesson_plan_6_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_6_question_1"
                             ]
                         },
                         {
@@ -206,8 +201,8 @@
                             "body_text": "How do temperature and pH affect enzyme activity?",
                             "field_of_study": "Biology",
                             "specific_topic": "Enzyme Activity",
-                            "media_content_ids": [
-                                "media/lesson_plan_6_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_6_question_2"
                             ]
                         },
                         {
@@ -215,8 +210,8 @@
                             "body_text": "Why are enzymes specific to particular substrates?",
                             "field_of_study": "Biology",
                             "specific_topic": "Enzyme Activity",
-                            "media_content_ids": [
-                                "media/lesson_plan_6_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_6_question_3"
                             ]
                         }
                     ]
@@ -224,8 +219,8 @@
                 {
                     "id": "lesson_plan_7",
                     "topic": "Mitosis and the Cell Cycle",
-                    "media_content_ids": [
-                                "media/lesson_plan_7.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_7"
                             ]
                     "questions": [
                         {
@@ -233,8 +228,8 @@
                             "body_text": "What are the stages of the cell cycle, and what occurs in each?",
                             "field_of_study": "Biology",
                             "specific_topic": "Mitosis and the Cell Cycle",
-                            "media_content_ids": [
-                                "media/lesson_plan_7_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_7_question_1"
                             ]
                         },
                         {
@@ -242,8 +237,8 @@
                             "body_text": "How does mitosis ensure genetic consistency in daughter cells?",
                             "field_of_study": "Biology",
                             "specific_topic": "Mitosis and the Cell Cycle",
-                            "media_content_ids": [
-                                "media/lesson_plan_7_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_7_question_2"
                             ]
                         },
                         {
@@ -251,8 +246,8 @@
                             "body_text": "What is the significance of checkpoints in the cell cycle?",
                             "field_of_study": "Biology",
                             "specific_topic": "Mitosis and the Cell Cycle",
-                            "media_content_ids": [
-                                "media/lesson_plan_7_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_7_question_3"
                             ]
                         }
                     ]
@@ -260,8 +255,8 @@
                 {
                     "id": "lesson_plan_8",
                     "topic": "Meiosis and Genetic Variation",
-                    "media_content_ids": [
-                                "media/lesson_plan_8.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_8"
                             ]
                     "questions": [
                         {
@@ -269,8 +264,8 @@
                             "body_text": "How does meiosis contribute to genetic diversity?",
                             "field_of_study": "Biology",
                             "specific_topic": "Meiosis and Genetic Variation",
-                            "media_content_ids": [
-                                "media/lesson_plan_8_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_8_question_1"
                             ]
                         },
                         {
@@ -278,8 +273,8 @@
                             "body_text": "What are the key differences between meiosis I and meiosis II?",
                             "field_of_study": "Biology",
                             "specific_topic": "Meiosis and Genetic Variation",
-                            "media_content_ids": [
-                                "media/lesson_plan_8_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_8_question_2"
                             ]
                         },
                         {
@@ -287,8 +282,8 @@
                             "body_text": "How do errors during meiosis lead to genetic disorders?",
                             "field_of_study": "Biology",
                             "specific_topic": "Meiosis and Genetic Variation",
-                            "media_content_ids": [
-                                "media/lesson_plan_8_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_8_question_3"
                             ]
                         }
                     ]
@@ -296,8 +291,8 @@
                 {
                     "id": "lesson_plan_9",
                     "topic": "Cellular Respiration",
-                    "media_content_ids": [
-                                "media/lesson_plan_9.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_9"
                             ]
                     "questions": [
                         {
@@ -305,8 +300,8 @@
                             "body_text": "What are the main stages of cellular respiration, and where do they occur?",
                             "field_of_study": "Biology",
                             "specific_topic": "Cellular Respiration",
-                            "media_content_ids": [
-                                "media/lesson_plan_9_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_9_question_1"
                             ]
                         },
                         {
@@ -314,8 +309,8 @@
                             "body_text": "How is ATP produced during cellular respiration?",
                             "field_of_study": "Biology",
                             "specific_topic": "Cellular Respiration",
-                            "media_content_ids": [
-                                "media/lesson_plan_9_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_9_question_2"
                             ]
                         },
                         {
@@ -323,8 +318,8 @@
                             "body_text": "What is the role of oxygen in the electron transport chain?",
                             "field_of_study": "Biology",
                             "specific_topic": "Cellular Respiration",
-                            "media_content_ids": [
-                                "media/lesson_plan_9_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_9_question_3"
                             ]
                         }
                     ]
@@ -332,8 +327,8 @@
                 {
                     "id": "lesson_plan_10",
                     "topic": "Photosynthesis",
-                    "media_content_ids": [
-                                "media/lesson_plan_10.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_10"
                             ]
                     "questions": [
                         {
@@ -341,8 +336,8 @@
                             "body_text": "What are the light-dependent and light-independent reactions of photosynthesis?",
                             "field_of_study": "Biology",
                             "specific_topic": "Photosynthesis",
-                            "media_content_ids": [
-                                "media/lesson_plan_10_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_10_question_1"
                             ]
                         },
                         {
@@ -350,8 +345,8 @@
                             "body_text": "How do chloroplasts capture light energy?",
                             "field_of_study": "Biology",
                             "specific_topic": "Photosynthesis",
-                            "media_content_ids": [
-                                "media/lesson_plan_10_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_10_question_2"
                             ]
                         },
                         {
@@ -359,8 +354,8 @@
                             "body_text": "What factors can affect the rate of photosynthesis?",
                             "field_of_study": "Biology",
                             "specific_topic": "Photosynthesis",
-                            "media_content_ids": [
-                                "media/lesson_plan_10_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_10_question_3"
                             ]
                         }
                     ]
@@ -375,8 +370,8 @@
                 {
                     "id": "lesson_plan_11",
                     "topic": "Plant Cell Anatomy",
-                    "media_content_ids": [
-                                "media/lesson_plan_11.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_11"
                             ]
                     "questions": [
                         {
@@ -384,8 +379,8 @@
                             "body_text": "What are the unique structures found in plant cells but not in animal cells?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Cell Anatomy",
-                            "media_content_ids": [
-                                "media/lesson_plan_11_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_11_question_1"
                             ]
                         },
                         {
@@ -393,8 +388,8 @@
                             "body_text": "How do chloroplasts and mitochondria function differently in plant cells?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Cell Anatomy",
-                            "media_content_ids": [
-                                "media/lesson_plan_11_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_11_question_2"
                             ]
                         },
                         {
@@ -402,8 +397,8 @@
                             "body_text": "What is the role of the central vacuole in plant cells?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Cell Anatomy",
-                            "media_content_ids": [
-                                "media/lesson_plan_11_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_11_question_3"
                             ]
                         }
                     ]
@@ -411,8 +406,8 @@
                 {
                     "id": "lesson_plan_12",
                     "topic": "Photosynthesis Process",
-                    "media_content_ids": [
-                                "media/lesson_plan_12.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_12"
                             ]
                     "questions": [
                         {
@@ -420,8 +415,8 @@
                             "body_text": "How do light intensity and carbon dioxide concentration affect photosynthesis?",
                             "field_of_study": "Biology",
                             "specific_topic": "Photosynthesis Process",
-                            "media_content_ids": [
-                                "media/lesson_plan_12_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_12_question_1"
                             ]
                         },
                         {
@@ -429,8 +424,8 @@
                             "body_text": "What is the significance of the Calvin cycle in photosynthesis?",
                             "field_of_study": "Biology",
                             "specific_topic": "Photosynthesis Process",
-                            "media_content_ids": [
-                                "media/lesson_plan_12_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_12_question_2"
                             ]
                         },
                         {
@@ -438,8 +433,8 @@
                             "body_text": "How do C4 and CAM plants adapt to arid environments?",
                             "field_of_study": "Biology",
                             "specific_topic": "Photosynthesis Process",
-                            "media_content_ids": [
-                                "media/lesson_plan_12_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_12_question_3"
                             ]
                         }
                     ]
@@ -447,8 +442,8 @@
                 {
                     "id": "lesson_plan_13",
                     "topic": "Plant Tissues and Organs",
-                    "media_content_ids": [
-                                "media/lesson_plan_13.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_13"
                             ]
                     "questions": [
                         {
@@ -456,8 +451,8 @@
                             "body_text": "What are the primary functions of xylem and phloem in vascular plants?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Tissues and Organs",
-                            "media_content_ids": [
-                                "media/lesson_plan_13_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_13_question_1"
                             ]
                         },
                         {
@@ -465,8 +460,8 @@
                             "body_text": "How do roots, stems, and leaves contribute to plant survival?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Tissues and Organs",
-                            "media_content_ids": [
-                                "media/lesson_plan_13_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_13_question_2"
                             ]
                         },
                         {
@@ -474,8 +469,8 @@
                             "body_text": "What are the differences between monocot and dicot plant structures?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Tissues and Organs",
-                            "media_content_ids": [
-                                "media/lesson_plan_13_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_13_question_3"
                             ]
                         }
                     ]
@@ -483,8 +478,8 @@
                 {
                     "id": "lesson_plan_14",
                     "topic": "Plant Reproduction",
-                    "media_content_ids": [
-                                "media/lesson_plan_14.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_14"
                             ]
                     "questions": [
                         {
@@ -492,8 +487,8 @@
                             "body_text": "How do angiosperms and gymnosperms differ in their reproductive strategies?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Reproduction",
-                            "media_content_ids": [
-                                "media/lesson_plan_14_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_14_question_1"
                             ]
                         },
                         {
@@ -501,8 +496,8 @@
                             "body_text": "What is the role of flowers in plant reproduction?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Reproduction",
-                            "media_content_ids": [
-                                "media/lesson_plan_14_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_14_question_2"
                             ]
                         },
                         {
@@ -510,8 +505,8 @@
                             "body_text": "How does pollination lead to fertilization in plants?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Reproduction",
-                            "media_content_ids": [
-                                "media/lesson_plan_14_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_14_question_3"
                             ]
                         }
                     ]
@@ -519,8 +514,8 @@
                 {
                     "id": "lesson_plan_15",
                     "topic": "Plant Growth and Development",
-                    "media_content_ids": [
-                                "media/lesson_plan_15.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_15"
                             ]
                     "questions": [
                         {
@@ -528,8 +523,8 @@
                             "body_text": "What roles do auxins and gibberellins play in plant growth?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Growth and Development",
-                            "media_content_ids": [
-                                "media/lesson_plan_15_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_15_question_1"
                             ]
                         },
                         {
@@ -537,8 +532,8 @@
                             "body_text": "How does phototropism affect plant development?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Growth and Development",
-                            "media_content_ids": [
-                                "media/lesson_plan_15_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_15_question_2"
                             ]
                         },
                         {
@@ -546,8 +541,8 @@
                             "body_text": "What is the significance of meristematic tissue in plants?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Growth and Development",
-                            "media_content_ids": [
-                                "media/lesson_plan_15_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_15_question_3"
                             ]
                         }
                     ]
@@ -555,8 +550,8 @@
                 {
                     "id": "lesson_plan_16",
                     "topic": "Transpiration and Water Transport",
-                    "media_content_ids": [
-                                "media/lesson_plan_16.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_16"
                             ]
                     "questions": [
                         {
@@ -564,8 +559,8 @@
                             "body_text": "How does the cohesion-tension theory explain water movement in plants?",
                             "field_of_study": "Biology",
                             "specific_topic": "Transpiration and Water Transport",
-                            "media_content_ids": [
-                                "media/lesson_plan_16_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_16_question_1"
                             ]
                         },
                         {
@@ -573,8 +568,8 @@
                             "body_text": "What environmental factors influence the rate of transpiration?",
                             "field_of_study": "Biology",
                             "specific_topic": "Transpiration and Water Transport",
-                            "media_content_ids": [
-                                "media/lesson_plan_16_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_16_question_2"
                             ]
                         },
                         {
@@ -582,8 +577,8 @@
                             "body_text": "How do stomata regulate gas exchange and water loss?",
                             "field_of_study": "Biology",
                             "specific_topic": "Transpiration and Water Transport",
-                            "media_content_ids": [
-                                "media/lesson_plan_16_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_16_question_3"
                             ]
                         }
                     ]
@@ -591,8 +586,8 @@
                 {
                     "id": "lesson_plan_17",
                     "topic": "Plant Nutrition and Soil",
-                    "media_content_ids": [
-                                "media/lesson_plan_17.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_17"
                             ]
                     "questions": [
                         {
@@ -600,8 +595,8 @@
                             "body_text": "What are the essential macronutrients and micronutrients required by plants?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Nutrition and Soil",
-                            "media_content_ids": [
-                                "media/lesson_plan_17_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_17_question_1"
                             ]
                         },
                         {
@@ -609,8 +604,8 @@
                             "body_text": "How do mycorrhizal associations benefit plant nutrition?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Nutrition and Soil",
-                            "media_content_ids": [
-                                "media/lesson_plan_17_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_17_question_2"
                             ]
                         },
                         {
@@ -618,8 +613,8 @@
                             "body_text": "What is the impact of soil pH on nutrient availability for plants?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Nutrition and Soil",
-                            "media_content_ids": [
-                                "media/lesson_plan_17_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_17_question_3"
                             ]
                         }
                     ]
@@ -627,8 +622,8 @@
                 {
                     "id": "lesson_plan_18",
                     "topic": "Plant Responses to the Environment",
-                    "media_content_ids": [
-                                "media/lesson_plan_18.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_18"
                             ]
                     "questions": [
                         {
@@ -636,8 +631,8 @@
                             "body_text": "How do plants respond to light and gravity?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Responses to the Environment",
-                            "media_content_ids": [
-                                "media/lesson_plan_18_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_18_question_1"
                             ]
                         },
                         {
@@ -645,8 +640,8 @@
                             "body_text": "What mechanisms do plants use to defend against herbivores?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Responses to the Environment",
-                            "media_content_ids": [
-                                "media/lesson_plan_18_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_18_question_2"
                             ]
                         },
                         {
@@ -654,8 +649,8 @@
                             "body_text": "How do plants adapt to drought conditions?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Responses to the Environment",
-                            "media_content_ids": [
-                                "media/lesson_plan_18_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_18_question_3"
                             ]
                         }
                     ]
@@ -663,8 +658,8 @@
                 {
                     "id": "lesson_plan_19",
                     "topic": "Photosynthetic Pigments",
-                    "media_content_ids": [
-                                "media/lesson_plan_19.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_19"
                             ]
                     "questions": [
                         {
@@ -672,8 +667,8 @@
                             "body_text": "What are the roles of chlorophyll a and b in photosynthesis?",
                             "field_of_study": "Biology",
                             "specific_topic": "Photosynthetic Pigments",
-                            "media_content_ids": [
-                                "media/lesson_plan_19_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_19_question_1"
                             ]
                         },
                         {
@@ -681,8 +676,8 @@
                             "body_text": "How do carotenoids assist in light absorption?",
                             "field_of_study": "Biology",
                             "specific_topic": "Photosynthetic Pigments",
-                            "media_content_ids": [
-                                "media/lesson_plan_19_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_19_question_2"
                             ]
                         },
                         {
@@ -690,8 +685,8 @@
                             "body_text": "Why do leaves change color in the fall?",
                             "field_of_study": "Biology",
                             "specific_topic": "Photosynthetic Pigments",
-                            "media_content_ids": [
-                                "media/lesson_plan_19_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_19_question_3"
                             ]
                         }
                     ]
@@ -699,8 +694,8 @@
                 {
                     "id": "lesson_plan_20",
                     "topic": "Plant Hormones",
-                    "media_content_ids": [
-                                "media/lesson_plan_20.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_20"
                             ]
                     "questions": [
                         {
@@ -708,8 +703,8 @@
                             "body_text": "How does ethylene influence fruit ripening?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Hormones",
-                            "media_content_ids": [
-                                "media/lesson_plan_20_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_20_question_1"
                             ]
                         },
                         {
@@ -717,8 +712,8 @@
                             "body_text": "What is the role of cytokinins in cell division?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Hormones",
-                            "media_content_ids": [
-                                "media/lesson_plan_20_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_20_question_2"
                             ]
                         },
                         {
@@ -726,8 +721,8 @@
                             "body_text": "How do abscisic acid levels affect seed dormancy?",
                             "field_of_study": "Biology",
                             "specific_topic": "Plant Hormones",
-                            "media_content_ids": [
-                                "media/lesson_plan_20_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_20_question_3"
                             ]
                         }
                     ]
@@ -742,8 +737,8 @@
                 {
                     "id": "lesson_plan_21",
                     "topic": "Introduction to Genetics",
-                    "media_content_ids": [
-                                "media/lesson_plan_21.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_21"
                             ]
                     "questions": [
                         {
@@ -751,8 +746,8 @@
                             "body_text": "What is the significance of Gregor Mendel's experiments with pea plants?",
                             "field_of_study": "Biology",
                             "specific_topic": "Introduction to Genetics",
-                            "media_content_ids": [
-                                "media/lesson_plan_21_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_21_question_1"
                             ]
                         },
                         {
@@ -760,8 +755,8 @@
                             "body_text": "How do dominant and recessive alleles interact in inheritance?",
                             "field_of_study": "Biology",
                             "specific_topic": "Introduction to Genetics",
-                            "media_content_ids": [
-                                "media/lesson_plan_21_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_21_question_2"
                             ]
                         },
                         {
@@ -769,8 +764,8 @@
                             "body_text": "What is the law of segregation?",
                             "field_of_study": "Biology",
                             "specific_topic": "Introduction to Genetics",
-                            "media_content_ids": [
-                                "media/lesson_plan_21_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_21_question_3"
                             ]
                         }
                     ]
@@ -778,8 +773,8 @@
                 {
                     "id": "lesson_plan_22",
                     "topic": "Monohybrid Crosses",
-                    "media_content_ids": [
-                                "media/lesson_plan_22.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_22"
                             ]
                     "questions": [
                         {
@@ -787,8 +782,8 @@
                             "body_text": "How do you set up and interpret a Punnett square for a single trait?",
                             "field_of_study": "Biology",
                             "specific_topic": "Monohybrid Crosses",
-                            "media_content_ids": [
-                                "media/lesson_plan_22_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_22_question_1"
                             ]
                         },
                         {
@@ -796,8 +791,8 @@
                             "body_text": "What is the expected phenotypic ratio in a monohybrid cross between two heterozygous individuals?",
                             "field_of_study": "Biology",
                             "specific_topic": "Monohybrid Crosses",
-                            "media_content_ids": [
-                                "media/lesson_plan_22_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_22_question_2"
                             ]
                         },
                         {
@@ -805,8 +800,8 @@
                             "body_text": "How can probability be used to predict genetic outcomes?",
                             "field_of_study": "Biology",
                             "specific_topic": "Monohybrid Crosses",
-                            "media_content_ids": [
-                                "media/lesson_plan_22_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_22_question_3"
                             ]
                         }
                     ]
@@ -814,8 +809,8 @@
                 {
                     "id": "lesson_plan_23",
                     "topic": "Dihybrid Crosses",
-                    "media_content_ids": [
-                                "media/lesson_plan_23.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_23"
                             ]
                     "questions": [
                         {
@@ -823,8 +818,8 @@
                             "body_text": "What is the law of independent assortment?",
                             "field_of_study": "Biology",
                             "specific_topic": "Dihybrid Crosses",
-                            "media_content_ids": [
-                                "media/lesson_plan_23_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_23_question_1"
                             ]
                         },
                         {
@@ -832,8 +827,8 @@
                             "body_text": "How do you determine the phenotypic ratio in a dihybrid cross?",
                             "field_of_study": "Biology",
                             "specific_topic": "Dihybrid Crosses",
-                            "media_content_ids": [
-                                "media/lesson_plan_23_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_23_question_2"
                             ]
                         },
                         {
@@ -841,8 +836,8 @@
                             "body_text": "What are recombinant phenotypes, and how do they arise?",
                             "field_of_study": "Biology",
                             "specific_topic": "Dihybrid Crosses",
-                            "media_content_ids": [
-                                "media/lesson_plan_23_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_23_question_3"
                             ]
                         }
                     ]
@@ -850,8 +845,8 @@
                 {
                     "id": "lesson_plan_24",
                     "topic": "Incomplete Dominance and Codominance",
-                    "media_content_ids": [
-                                "media/lesson_plan_24.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_24"
                             ]
                     "questions": [
                         {
@@ -859,8 +854,8 @@
                             "body_text": "How does incomplete dominance differ from complete dominance?",
                             "field_of_study": "Biology",
                             "specific_topic": "Incomplete Dominance and Codominance",
-                            "media_content_ids": [
-                                "media/lesson_plan_24_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_24_question_1"
                             ]
                         },
                         {
@@ -868,8 +863,8 @@
                             "body_text": "What are examples of codominance in human traits?",
                             "field_of_study": "Biology",
                             "specific_topic": "Incomplete Dominance and Codominance",
-                            "media_content_ids": [
-                                "media/lesson_plan_24_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_24_question_2"
                             ]
                         },
                         {
@@ -877,8 +872,8 @@
                             "body_text": "How do you predict offspring phenotypes in cases of codominance?",
                             "field_of_study": "Biology",
                             "specific_topic": "Incomplete Dominance and Codominance",
-                            "media_content_ids": [
-                                "media/lesson_plan_24_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_24_question_3"
                             ]
                         }
                     ]
@@ -886,8 +881,8 @@
                 {
                     "id": "lesson_plan_25",
                     "topic": "Sex-Linked Traits",
-                    "media_content_ids": [
-                                "media/lesson_plan_25.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_25"
                             ]
                     "questions": [
                         {
@@ -895,8 +890,8 @@
                             "body_text": "Why are males more frequently affected by X-linked recessive disorders?",
                             "field_of_study": "Biology",
                             "specific_topic": "Sex-Linked Traits",
-                            "media_content_ids": [
-                                "media/lesson_plan_25_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_25_question_1"
                             ]
                         },
                         {
@@ -904,8 +899,8 @@
                             "body_text": "How do you construct a pedigree to trace a sex-linked trait?",
                             "field_of_study": "Biology",
                             "specific_topic": "Sex-Linked Traits",
-                            "media_content_ids": [
-                                "media/lesson_plan_25_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_25_question_2"
                             ]
                         },
                         {
@@ -913,8 +908,8 @@
                             "body_text": "What are examples of Y-linked traits?",
                             "field_of_study": "Biology",
                             "specific_topic": "Sex-Linked Traits",
-                            "media_content_ids": [
-                                "media/lesson_plan_25_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_25_question_3"
                             ]
                         }
                     ]
@@ -922,8 +917,8 @@
                 {
                     "id": "lesson_plan_26",
                     "topic": "Pedigree Analysis",
-                    "media_content_ids": [
-                                "media/lesson_plan_26.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_26"
                             ]
                     "questions": [
                         {
@@ -931,8 +926,8 @@
                             "body_text": "How can pedigrees be used to determine the mode of inheritance of a trait?",
                             "field_of_study": "Biology",
                             "specific_topic": "Pedigree Analysis",
-                            "media_content_ids": [
-                                "media/lesson_plan_26_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_26_question_1"
                             ]
                         },
                         {
@@ -940,8 +935,8 @@
                             "body_text": "What symbols are used to represent individuals and relationships in pedigrees?",
                             "field_of_study": "Biology",
                             "specific_topic": "Pedigree Analysis",
-                            "media_content_ids": [
-                                "media/lesson_plan_26_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_26_question_2"
                             ]
                         },
                         {
@@ -949,8 +944,8 @@
                             "body_text": "How do you distinguish between autosomal dominant and autosomal recessive inheritance in a pedigree?",
                             "field_of_study": "Biology",
                             "specific_topic": "Pedigree Analysis",
-                            "media_content_ids": [
-                                "media/lesson_plan_26_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_26_question_3"
                             ]
                         }
                     ]
@@ -958,8 +953,8 @@
                 {
                     "id": "lesson_plan_27",
                     "topic": "Genetic Disorders",
-                    "media_content_ids": [
-                                "media/lesson_plan_27.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_27"
                             ]
                     "questions": [
                         {
@@ -967,8 +962,8 @@
                             "body_text": "What are the causes and symptoms of cystic fibrosis?",
                             "field_of_study": "Biology",
                             "specific_topic": "Genetic Disorders",
-                            "media_content_ids": [
-                                "media/lesson_plan_27_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_27_question_1"
                             ]
                         },
                         {
@@ -976,8 +971,8 @@
                             "body_text": "How is sickle-cell anemia inherited?",
                             "field_of_study": "Biology",
                             "specific_topic": "Genetic Disorders",
-                            "media_content_ids": [
-                                "media/lesson_plan_27_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_27_question_2"
                             ]
                         },
                         {
@@ -985,8 +980,8 @@
                             "body_text": "What are the genetic and environmental factors contributing to multifactorial disorders?",
                             "field_of_study": "Biology",
                             "specific_topic": "Genetic Disorders",
-                            "media_content_ids": [
-                                "media/lesson_plan_27_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_27_question_3"
                             ]
                         }
                     ]
@@ -994,8 +989,8 @@
                 {
                     "id": "lesson_plan_28",
                     "topic": "DNA Structure and Replication",
-                    "media_content_ids": [
-                                "media/lesson_plan_28.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_28"
                             ]
                     "questions": [
                         {
@@ -1003,8 +998,8 @@
                             "body_text": "What is the double helix model of DNA?",
                             "field_of_study": "Biology",
                             "specific_topic": "DNA Structure and Replication",
-                            "media_content_ids": [
-                                "media/lesson_plan_28_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_28_question_1"
                             ]
                         },
                         {
@@ -1012,8 +1007,8 @@
                             "body_text": "How does DNA replication ensure genetic fidelity?",
                             "field_of_study": "Biology",
                             "specific_topic": "DNA Structure and Replication",
-                            "media_content_ids": [
-                                "media/lesson_plan_28_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_28_question_2"
                             ]
                         },
                         {
@@ -1021,8 +1016,8 @@
                             "body_text": "What enzymes are involved in the replication process?",
                             "field_of_study": "Biology",
                             "specific_topic": "DNA Structure and Replication",
-                            "media_content_ids": [
-                                "media/lesson_plan_28_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_28_question_3"
                             ]
                         }
                     ]
@@ -1030,8 +1025,8 @@
                 {
                     "id": "lesson_plan_29",
                     "topic": "Gene Expression and Regulation",
-                    "media_content_ids": [
-                                "media/lesson_plan_29.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_29"
                             ]
                     "questions": [
                         {
@@ -1039,8 +1034,8 @@
                             "body_text": "How is genetic information transcribed and translated into proteins?",
                             "field_of_study": "Biology",
                             "specific_topic": "Gene Expression and Regulation",
-                            "media_content_ids": [
-                                "media/lesson_plan_29_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_29_question_1"
                             ]
                         },
                         {
@@ -1048,8 +1043,8 @@
                             "body_text": "What are the roles of mRNA, tRNA, and rRNA in protein synthesis?",
                             "field_of_study": "Biology",
                             "specific_topic": "Gene Expression and Regulation",
-                            "media_content_ids": [
-                                "media/lesson_plan_29_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_29_question_2"
                             ]
                         },
                         {
@@ -1057,8 +1052,8 @@
                             "body_text": "How is gene expression regulated in prokaryotes and eukaryotes?",
                             "field_of_study": "Biology",
                             "specific_topic": "Gene Expression and Regulation",
-                            "media_content_ids": [
-                                "media/lesson_plan_29_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_29_question_3"
                             ]
                         }
                     ]
@@ -1066,8 +1061,8 @@
                 {
                     "id": "lesson_plan_30",
                     "topic": "Mutations and Their Effects",
-                    "media_content_ids": [
-                                "media/lesson_plan_30.png"
+                    "media_content_urls": [
+                                "media/lesson_plan_30"
                             ]
                     "questions": [
                         {
@@ -1075,8 +1070,8 @@
                             "body_text": "What are different types of genetic mutations?",
                             "field_of_study": "Biology",
                             "specific_topic": "Mutations and Their Effects",
-                            "media_content_ids": [
-                                "media/lesson_plan_30_question_1.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_30_question_1"
                             ]
                         },
                         {
@@ -1084,8 +1079,8 @@
                             "body_text": "How do mutations lead to changes in proteins?",
                             "field_of_study": "Biology",
                             "specific_topic": "Mutations and Their Effects",
-                            "media_content_ids": [
-                                "media/lesson_plan_30_question_2.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_30_question_2"
                             ]
                         },
                         {
@@ -1093,8 +1088,8 @@
                             "body_text": "What is the role of mutations in evolution?",
                             "field_of_study": "Biology",
                             "specific_topic": "Mutations and Their Effects",
-                            "media_content_ids": [
-                                "media/lesson_plan_30_question_3.png"
+                            "media_content_urls": [
+                                "media/lesson_plan_30_question_3"
                             ]
                         }
                     ]
