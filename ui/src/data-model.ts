@@ -1,27 +1,41 @@
+import { FirebaseApp } from "firebase/app"
+import { User } from "firebase/auth"
+import { createContext } from "react"
+
 export interface Teacher {
 	id: string
+	user_id: string
 	nickname: string
 	email_address: string
+	created_at: string
+	updated_at: string
 }
 
 export interface TeacherData extends Teacher {
-	classes: Class[]
+	classes: ClassWithStudents[]
 	lesson_plans: LessonPlan[]
 	lessons: Lesson[]
-	media_content: MediaContent[]
 }
 
 export interface Class {
 	id: string
 	teacher_email: string
 	name: string
+	created_at: string
+	updated_at: string
+}
+export interface ClassWithStudents extends Class {
 	students: Student[]
 }
 
 export interface Student {
 	id: string
+	class_id: string
+	teacher_email: string
 	nickname: string
 	notes: string
+	created_at: string
+	updated_at: string
 }
 
 export interface LessonPlan {
@@ -30,14 +44,17 @@ export interface LessonPlan {
 	title: string
 	published: boolean
 	questions: LessonQuestion[]
+	created_at: string
+	updated_at: string
 }
 
 export interface LessonQuestion {
 	id: string
+	teacher_email: string
 	body_text: string
 	field_of_study: string
 	specific_topic: string
-	media_content_ids?: string[]
+	media_content_urls?: string[]
 	additional_context?: string
 	final_response_categories?: string[]
 	analysis?: LessonQuestionAnalysis
@@ -58,10 +75,13 @@ export interface Lesson {
 	responses_locked: boolean
 	student_names_started?: string[]
 	responses?: LessonResponse[]
+	created_at: string
+	updated_at: string
 }
 
 export interface LessonResponse {
 	id: string
+	teacher_email: string
 	student_id: string
 	student_name: string
 	lesson_question_id: string
@@ -69,6 +89,8 @@ export interface LessonResponse {
 	response_text?: string
 	response_as_text?: string
 	analysis?: LessonResponseAnalysis
+	created_at: string
+	updated_at: string
 }
 
 export interface LessonResponseAnalysis {
@@ -79,7 +101,11 @@ export interface LessonResponseAnalysis {
 	response_category_alternatives: string[]
 }
 
-export interface MediaContent {
-	id: string // This matches the filename like "/mediaContent/{id}/some-file.png"
-	deleted: boolean
+/**
+ * UI-only data model
+ */
+export const AppCtx = createContext<AppContext|null>(null)
+export interface AppContext {
+	firebaseApp: FirebaseApp
+	user: User | null | undefined
 }

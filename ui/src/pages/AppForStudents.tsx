@@ -18,6 +18,8 @@ const AppForStudents: FC = () => {
 		teacher_email: "test.teacher@school.com",
 		responses_locked: false,
 		student_names_started: [],
+		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
 	})
 	const studentDropdownOptions = useMemo(() => theLesson.student_names, [theLesson])
 	const [studentUser, setStudentUser] = useState<string>()
@@ -29,10 +31,6 @@ const AppForStudents: FC = () => {
 			console.log(dataURL)
 		}
 	}, [canvasRef.current])
-
-	useEffect(() => {
-
-	}, [theLesson])
 
 	return (
 		<div className="dark">

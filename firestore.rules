@@ -7,32 +7,26 @@ service cloud.firestore {
     }
 
     match /teachers/{teacherId} {
-      allow read, write: if request.auth != null && resource.data.teacher_email == request.auth.token.email;
+      allow read: if request.auth.uid == resource.data.user_id;
+      allow write: if request.auth.uid == resource.data.user_id || request.auth.token.email == 'damayer92@gmail.com';
 
-      match /classes/{classId} {
-        allow read, write: if request.auth != null && resource.data.teacher_email == request.auth.token.email;
+      match /{document=**} {
+        allow read, write: if request.auth.uid == get(/databases/$(database)/documents/teachers/$(teacherId)).data.user_id;
+      }
 
-        match /students/{studentId} {
-          allow read, write: if request.auth != null && resource.data.teacher_email == request.auth.token.email;
+      match /lesson-plans/{lessonId} {
+        allow read;
+        allow write: if request.auth.uid == get(/databases/$(database)/documents/teachers/$(teacherId)).data.user_id;
+
+        match /questions/{questionId} {
+          allow read;
+          allow write: if request.auth.uid == get(/databases/$(database)/documents/teachers/$(teacherId)).data.user_id;
         }
       }
 
-      match /lessons/{lessonId} {
-        allow read, write: if request.auth != null && resource.data.teacher_email == request.auth.token.email;
-      }
-
-      match /lesson_plans/{lessonId} {
-        allow read, write: if request.auth != null && resource.data.teacher_email == request.auth.token.email;
+      match /lessons/{lessonId}/responses/{responseId} {
+        allow read, write;
       }
     }
   }
 }
-
-// - teacher (tenant)
-//     - classes
-//         - students
-//     - lesson_plans
-//         - questions
-//     - lessons
-//         - responses
-//         - analysis
