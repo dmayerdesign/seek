@@ -5,6 +5,7 @@ import { isEqual } from "lodash"
 import { FC, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { AppCtx, Class, ClassWithStudents, Student, Teacher, TeacherData } from "../data-model"
+import { getApiUrl } from "../utils"
 
 const TeacherHome: FC = () => {
 	const { user, firebaseApp } = useContext(AppCtx)!
@@ -48,7 +49,7 @@ const TeacherHome: FC = () => {
 		if (user) {
 			try {
 				const jwt = await user.getIdToken()
-				const resp = await fetch(import.meta.env.VITE_API_URL + "/getTeacherData", {
+				const resp = await fetch(getApiUrl("getTeacherData"), {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
@@ -74,7 +75,7 @@ const TeacherHome: FC = () => {
 		if (user) {
 			try {
 				const jwt = await user.getIdToken()
-				const resp = await fetch(import.meta.env.VITE_API_URL + "/getLessonPlans", {
+				const resp = await fetch(getApiUrl("getLessonPlans"), {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
@@ -108,7 +109,7 @@ const TeacherHome: FC = () => {
 					updated_at: new Date().toISOString(),
 				}
 				if (!isEqual(teacher, teacherData)) {
-					await fetch(import.meta.env.VITE_API_URL + "/putTeacher", {
+					await fetch(getApiUrl("putTeacher"), {
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
@@ -165,7 +166,7 @@ const TeacherHome: FC = () => {
 			}) as TeacherData)
 			// Then update the database
 			const jwt = await user.getIdToken()
-			await fetch(import.meta.env.VITE_API_URL + "/putStudent", {
+			await fetch(getApiUrl("putStudent"), {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -183,7 +184,7 @@ const TeacherHome: FC = () => {
 				const oldStudent = teacherData?.classes?.flatMap((c) => c.students).find(s => s.id === id)
 				if (oldStudent && !isEqual(oldStudent, studentInput)) {
 					const jwt = await user.getIdToken()
-					await fetch(import.meta.env.VITE_API_URL + "/putStudent", {
+					await fetch(getApiUrl("putStudent"), {
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
@@ -210,7 +211,7 @@ const TeacherHome: FC = () => {
 		if (user) {
 			try {
 				const jwt = await user.getIdToken()
-				await fetch(import.meta.env.VITE_API_URL + "/deleteStudent", {
+				await fetch(getApiUrl("deleteStudent"), {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
@@ -420,7 +421,7 @@ const TeacherHome: FC = () => {
 									}) as TeacherData)
 									// Then update the database
 									const jwt = await user.getIdToken()
-									await fetch(import.meta.env.VITE_API_URL + "/putClass", {
+									await fetch(getApiUrl("putClass"), {
 										method: "POST",
 										headers: {
 											"Content-Type": "application/json",
