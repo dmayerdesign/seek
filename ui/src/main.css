@@ -78,7 +78,8 @@ section {
 		font-size: 0;
 		border: 0;
 	}
-	button, a {
+	button,
+	a {
 		color: #286ba9 !important;
 	}
 	.large-button {
@@ -106,7 +107,8 @@ section {
 		font-size: 0;
 		border: 0;
 	}
-	button, a {
+	button,
+	a {
 		color: #adc9e4 !important;
 	}
 	.large-button {
@@ -198,17 +200,19 @@ input {
 }
 label + input {
 	display: block;
-    margin-top: 10px;
+	margin-top: 10px;
 }
 .inline-input {
-	background: transparent;
-	border: none;
-	color: inherit;
-	font-size: inherit;
-	font-weight: inherit;
+	background: transparent !important;
+	border: none !important;
+	border-radius: 0 !important;
+	color: inherit !important;
+	font-size: inherit !important;
+	font-weight: inherit !important;
+	padding: 0;
 
 	&:focus {
-		outline: none;
+		outline: none !important;
 	}
 }
 
