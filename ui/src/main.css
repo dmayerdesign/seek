@@ -83,7 +83,7 @@ section {
 	}
 	.large-button {
 		background: #286ba9;
-		color: #adc9e4 !important;
+		color: #fafafa !important;
 	}
 }
 .dark {
@@ -135,6 +135,7 @@ p {
 }
 button {
 	background: transparent;
+	padding: 0;
 	border: none;
 	font-weight: bold;
 	cursor: pointer;
@@ -182,22 +183,33 @@ textarea {
 textarea {
 	height: 3rem;
 }
-.input {
+input {
 	padding: 1.5rem;
 	border: none;
 	border-radius: 1.5rem;
 }
-.light .input {
+.light input {
 	background: #e1e3e3;
 	color: #444;
 }
-.dark .input {
+.dark input {
 	background: #444;
 	color: #f9fafb;
 }
 label + input {
 	display: block;
     margin-top: 10px;
+}
+.inline-input {
+	background: transparent;
+	border: none;
+	color: inherit;
+	font-size: inherit;
+	font-weight: inherit;
+
+	&:focus {
+		outline: none;
+	}
 }
 
 ul {

@@ -7,6 +7,14 @@ class Teacher:
     user_id: str
     nickname: str
     email_address: str
+    created_at: str
+    updated_at: str
+
+@dataclass
+class TeacherData(Teacher):
+    classes: List['Class']
+    lesson_plans: List['LessonPlan']
+    lessons: List['Lesson']
 
 @dataclass
 class Class:
@@ -14,6 +22,8 @@ class Class:
     teacher_email: str
     name: str
     students: List['Student']
+    created_at: str
+    updated_at: str
 
 @dataclass
 class Student:
@@ -22,6 +32,8 @@ class Student:
     teacher_email: str
     nickname: str
     notes: str
+    created_at: str
+    updated_at: str
 
 @dataclass
 class LessonPlan:
@@ -30,6 +42,8 @@ class LessonPlan:
     title: str
     published: bool
     questions: List['LessonQuestion']
+    created_at: str
+    updated_at: str
 
 
 @dataclass
@@ -39,7 +53,7 @@ class LessonQuestion:
     body_text: str
     field_of_study: str
     specific_topic: str
-    media_content_ids: Optional[List[str]] = None
+    media_content_urls: Optional[List[str]] = None
     additional_context: Optional[str] = None
     final_response_categories: Optional[List[str]] = None
     analysis: Optional['LessonQuestionAnalysis'] = None
@@ -62,6 +76,8 @@ class Lesson:
     responses_locked: bool
     student_names_started: Optional[List[str]]
     responses: Optional[List['LessonResponse']]
+    created_at: str
+    updated_at: str
 
 @dataclass
 class LessonResponse:
@@ -74,6 +90,8 @@ class LessonResponse:
     response_text: Optional[str]
     response_as_text: Optional[str]
     analysis: Optional['LessonResponseAnalysis']
+    created_at: str
+    updated_at: str
 
 
 @dataclass
@@ -83,8 +101,3 @@ class LessonResponseAnalysis:
     response_category: str
     response_category_explanation: str
     response_category_alternatives: List[str]
-
-@dataclass
-class MediaContent:
-    id: str  # This matches the filename like "/mediaContent/{id}/some-file.png"
-    deleted: bool

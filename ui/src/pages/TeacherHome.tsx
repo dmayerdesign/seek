@@ -1,8 +1,10 @@
-import { FC, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
-import { AppCtx, Teacher, TeacherData } from "../data-model"
-import { v4 as uuidv4 } from "uuid"
-import { isEqual } from "lodash"
+import { faTrash } from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from "firebase/auth"
+import { isEqual } from "lodash"
+import { FC, useCallback, useContext, useEffect, useRef, useState } from "react"
+import { v4 as uuidv4 } from "uuid"
+import { AppCtx, Class, ClassWithStudents, Student, Teacher, TeacherData } from "../data-model"
 
 const TeacherHome: FC = () => {
 	const { user, firebaseApp } = useContext(AppCtx)!
@@ -29,17 +31,19 @@ const TeacherHome: FC = () => {
 				await signIn()
 			}
 		}
-	}, [firebaseApp])
+	}, [firebaseApp, teacherEmail, teacherPassword])
 	const signIn = useCallback(async () => {
 		if (firebaseApp && teacherEmail && teacherPassword) {
 			try {
 				const result = await signInWithEmailAndPassword(getAuth(firebaseApp), teacherEmail, teacherPassword)
+				setTeacherEmail("")
+				setTeacherPassword("")
 				console.log(`Logged in as ${result.user.email}!`)
 			} catch (error) {
 				console.error("Failed login:", error)
 			}
 		}
-	}, [firebaseApp])
+	}, [firebaseApp, teacherEmail, teacherPassword])
 	const fetchTeacherData = useCallback(async () => {
 		if (user) {
 			try {
@@ -51,9 +55,7 @@ const TeacherHome: FC = () => {
 						"Authorization": `Bearer ${jwt}`,
 					},
 					body: JSON.stringify({
-						data: {
-							email_address: user.email,
-						}
+						data: {}
 					}),
 				})
 				const json = await resp.json()
@@ -100,11 +102,13 @@ const TeacherHome: FC = () => {
 					user_id: user?.uid,
 					email_address: user?.email ?? "",
 					nickname: teacherInput.nickname ?? "",
+					created_at: new Date().toISOString(),
 					...teacherData,
 					...teacherInput,
+					updated_at: new Date().toISOString(),
 				}
 				if (!isEqual(teacher, teacherData)) {
-					fetch(import.meta.env.VITE_API_URL + "/putTeacher", {
+					await fetch(import.meta.env.VITE_API_URL + "/putTeacher", {
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
@@ -114,12 +118,7 @@ const TeacherHome: FC = () => {
 							data: teacher,
 						}),
 					})
-						.then(() => {
-							fetchTeacherData()
-						})
-						.catch((e) => {
-							console.error(e)
-						})
+					fetchTeacherData()
 				}
 			} catch (e) {
 				console.error(e)
@@ -129,6 +128,107 @@ const TeacherHome: FC = () => {
 	useEffect(() => {
 		fetchTeacherData()
 	}, [fetchTeacherData])
+
+	const [studentsCtrl, setStudentsCtrl] = useState<Record<string, Student>>({})
+	useEffect(() => {
+		if (teacherData && teacherData.classes) {
+			setStudentsCtrl(teacherData.classes.flatMap((c) => c.students ?? []).reduce((acc, s) => {
+				acc[s.id] = s
+				return acc
+			}, {} as Record<string, Student>))
+		}
+	}, [teacherData])
+	const createStudent = useCallback(async (cls: ClassWithStudents) => {
+		if (user && teacherData) {
+			const newStudent: Student = {
+				id: uuidv4(),
+				class_id: cls.id,
+				nickname: "New student",
+				notes: "",
+				teacher_email: user.email!,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+			}
+			// Update our local state
+			const newClass: ClassWithStudents = {
+				...cls,
+				students: [
+					...(cls.students ?? []),
+					newStudent,
+				],
+			}
+			const newClasses = [ ...teacherData.classes ]
+			newClasses[newClasses.findIndex(c => c.id === cls.id)] = newClass
+			setTeacherData(td => ({
+				...td,
+				classes: newClasses,
+			}) as TeacherData)
+			// Then update the database
+			const jwt = await user.getIdToken()
+			await fetch(import.meta.env.VITE_API_URL + "/putStudent", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"Authorization": `Bearer ${jwt}`,
+				},
+				body: JSON.stringify({
+					data: newStudent,
+				}),
+			})
+		}
+	}, [user, teacherData])
+	const editStudent = useCallback(async (id: string, studentInput: Student) => {
+		if (user) {
+			try {
+				const oldStudent = teacherData?.classes?.flatMap((c) => c.students).find(s => s.id === id)
+				if (oldStudent && !isEqual(oldStudent, studentInput)) {
+					const jwt = await user.getIdToken()
+					await fetch(import.meta.env.VITE_API_URL + "/putStudent", {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							"Authorization": `Bearer ${jwt}`,
+						},
+						body: JSON.stringify({
+							data: {
+								...studentInput,
+								updated_at: new Date().toISOString(),
+							},
+						}),
+					})
+					fetchTeacherData()
+				}
+			} catch (e) {
+				console.error(e)
+			}
+		}
+	}, [user, teacherData])
+	const deleteStudent = useCallback(async (studentId: string, classId: string) => {
+		const newStudentsCtrl = { ...studentsCtrl }
+		delete newStudentsCtrl[studentId]
+		setStudentsCtrl(newStudentsCtrl)
+		if (user) {
+			try {
+				const jwt = await user.getIdToken()
+				await fetch(import.meta.env.VITE_API_URL + "/deleteStudent", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						"Authorization": `Bearer ${jwt}`,
+					},
+					body: JSON.stringify({
+						data: {
+							id: studentId,
+							class_id: classId,
+						},
+					}),
+				})
+				fetchTeacherData()
+			} catch (e) {
+				console.error(e)
+			}
+		}
+	}, [user, teacherData, studentsCtrl])
 
 	return <div className="light">
 		<header>
@@ -154,12 +254,13 @@ const TeacherHome: FC = () => {
 					? <section>
 						<h1>Create your teacher account</h1>
 						<p>
-							<button onClick={() => setFirstTimeUser(true)}>I already have one</button>
+							<button onClick={() => setFirstTimeUser(false)}>I already have one</button>
 						</p>
 						<div role="form">
 							<div>
 								<label htmlFor="email">Email</label>
 								<input type="email" id="email" name="email" required
+									className="large-input"
 									value={teacherEmail}
 									onChange={e => setTeacherEmail(e.target.value)}
 								/>
@@ -168,15 +269,21 @@ const TeacherHome: FC = () => {
 							<div>
 								<label htmlFor="password">Password</label>
 								<input type="password" id="password" name="password" required
+									className="large-input"
 									value={teacherPassword}
 									onChange={e => setTeacherPassword(e.target.value)}
 								/>
 							</div>
 
 							<button
+								className="large-button"
 								type="submit"
 								onClick={() => {
-									createAccount().then(() => {})
+									createAccount().then(() => {
+										putAndSyncTeacherData({
+											email_address: teacherEmail,
+										})
+									})
 								}}
 							>
 								Create Account
@@ -192,6 +299,7 @@ const TeacherHome: FC = () => {
 							<div>
 								<label htmlFor="email">Email</label>
 								<input type="email" id="email" name="email" required
+									className="large-input"
 									value={teacherEmail}
 									onChange={e => setTeacherEmail(e.target.value)}
 								/>
@@ -200,14 +308,20 @@ const TeacherHome: FC = () => {
 							<div>
 								<label htmlFor="password">Password</label>
 								<input type="password" id="password" name="password" required
+									className="large-input"
 									value={teacherPassword}
 									onChange={e => setTeacherPassword(e.target.value)}
 								/>
 							</div>
 
 							<button
+								className="large-button"
 								type="submit"
-								onClick={() => { signIn() }}
+								onClick={() => {
+									signIn().then(() => {
+										fetchTeacherData()
+									})
+								}}
 							>
 								Log in
 							</button>
@@ -218,7 +332,7 @@ const TeacherHome: FC = () => {
 					<section>
 						<h2>Set up your profile</h2>
 
-						<div>
+						<div style={{ marginBottom: "10px" }}>
 							<label htmlFor="teacher-profile-name">Your name</label>
 							<input ref={teacherNameInputRef}
 								id="teacher-profile-name"
@@ -244,9 +358,17 @@ const TeacherHome: FC = () => {
 								}}
 							/>
 						</div>
+						<button onClick={async () => {
+							await getAuth(firebaseApp).signOut()
+							setTeacherData(undefined)
+						}}>Sign out</button>
 					</section>
 
-					{teacherData && <>
+					{!teacherData
+					? <>
+						<p>Loading...</p>
+					</>
+					: <>
 						<section>
 							<h2 style={{ display: "flex", justifyContent: "space-between" }}>
 								Lessons
@@ -279,39 +401,90 @@ const TeacherHome: FC = () => {
 
 						<section>
 							<h2 style={{ display: "flex", justifyContent: "space-between" }}>
-								Students
-								<button>+ Add a class</button>
+								Classes and students
+								<button onClick={async () => {
+									const newClass: Class = {
+										id: uuidv4(),
+										name: "New class",
+										teacher_email: user.email!,
+										created_at: new Date().toISOString(),
+										updated_at: new Date().toISOString(),
+									}
+									// Update our local state
+									setTeacherData(td => ({
+										...td,
+										classes: [
+											...(td?.classes ?? []),
+											newClass,
+										],
+									}) as TeacherData)
+									// Then update the database
+									const jwt = await user.getIdToken()
+									await fetch(import.meta.env.VITE_API_URL + "/putClass", {
+										method: "POST",
+										headers: {
+											"Content-Type": "application/json",
+											"Authorization": `Bearer ${jwt}`,
+										},
+										body: JSON.stringify({
+											data: newClass,
+										}),
+									})
+								}}>+ Add a class</button>
 							</h2>
 
-							{teacherData.classes.map(c => <div key={c.id}>
+							{teacherData.classes?.map(c => <div key={c.id}>
 								<h3 style={{ display: "flex", justifyContent: "space-between" }}>
 									{c.name}
-									<button>+ Add a student</button>
 								</h3>
+								<hr />
+								<ul id="students">{c.students?.map(s => (
+									studentsCtrl[s.id] &&
+									<li key={s.id} style={{ display: "flex", justifyContent: "space-between", gap: "20px" }}>
+										<input className="inline-input"
+											style={{ flexGrow: 1 }}
+											value={studentsCtrl[s.id].nickname}
+											onChange={(e) => {
+												setStudentsCtrl(sc => ({
+													...sc,
+													[s.id]: {
+														...sc[s.id],
+														nickname: e.target.value,
+													},
+												}))
+											}}
+											onKeyDown={(e) => {
+												if (e.key === "Enter") {
+													e.currentTarget.blur()
+												}
+											}}
+											onBlur={() => {
+												setTimeout(() => {
+													editStudent(s.id, studentsCtrl[s.id])
+												})
+											}}
+										/>
+										<button onClick={() => {
+											deleteStudent(s.id, c.id)
+										}}>
+											<FontAwesomeIcon icon={faTrash} />
+										</button>
+									</li>
+								))}</ul>
+								<div style={{ marginTop: "20px" }}>
+									<button onClick={() => {
+										createStudent(c)
+										setTimeout(() => {
+											const newInput = document.querySelector("#students li:last-child input") as HTMLInputElement
+											console.log("got new input?", newInput)
+											newInput?.focus()
+											setTimeout(() => {
+												newInput?.select()
+											})
+										}, 250)
+									}}>+ Add a student</button>
+								</div>
 							</div>)}
-							<div>
-								<h3 style={{ display: "flex", justifyContent: "space-between" }}>
-									1st period biology
-									<button>+ Add a student</button>
-								</h3>
-								<hr />
-								<ul>
-									<li>Mayer, Daniel</li>
-									<li>Shanbhogue, Esha</li>
-								</ul>
-							</div>
-
-							<div>
-								<h3 style={{ display: "flex", justifyContent: "space-between" }}>
-									2nd period physics
-									<button>+ Add a student</button>
-								</h3>
-								<hr />
-								<ul>
-									<li>Mayer, Daniel</li>
-									<li>Shanbhogue, Esha</li>
-								</ul>
-							</div>
 						</section>
 					</>}
 				</div>

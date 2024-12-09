@@ -7,19 +7,24 @@ export interface Teacher {
 	user_id: string
 	nickname: string
 	email_address: string
+	created_at: string
+	updated_at: string
 }
 
 export interface TeacherData extends Teacher {
-	classes: Class[]
+	classes: ClassWithStudents[]
 	lesson_plans: LessonPlan[]
 	lessons: Lesson[]
-	media_content: MediaContent[]
 }
 
 export interface Class {
 	id: string
 	teacher_email: string
 	name: string
+	created_at: string
+	updated_at: string
+}
+export interface ClassWithStudents extends Class {
 	students: Student[]
 }
 
@@ -29,6 +34,8 @@ export interface Student {
 	teacher_email: string
 	nickname: string
 	notes: string
+	created_at: string
+	updated_at: string
 }
 
 export interface LessonPlan {
@@ -37,6 +44,8 @@ export interface LessonPlan {
 	title: string
 	published: boolean
 	questions: LessonQuestion[]
+	created_at: string
+	updated_at: string
 }
 
 export interface LessonQuestion {
@@ -45,7 +54,7 @@ export interface LessonQuestion {
 	body_text: string
 	field_of_study: string
 	specific_topic: string
-	media_content_ids?: string[]
+	media_content_urls?: string[]
 	additional_context?: string
 	final_response_categories?: string[]
 	analysis?: LessonQuestionAnalysis
@@ -66,6 +75,8 @@ export interface Lesson {
 	responses_locked: boolean
 	student_names_started?: string[]
 	responses?: LessonResponse[]
+	created_at: string
+	updated_at: string
 }
 
 export interface LessonResponse {
@@ -78,6 +89,8 @@ export interface LessonResponse {
 	response_text?: string
 	response_as_text?: string
 	analysis?: LessonResponseAnalysis
+	created_at: string
+	updated_at: string
 }
 
 export interface LessonResponseAnalysis {
@@ -86,11 +99,6 @@ export interface LessonResponseAnalysis {
 	response_category: string
 	response_category_explanation: string
 	response_category_alternatives: string[]
-}
-
-export interface MediaContent {
-	id: string // This matches the filename like "/mediaContent/{id}/some-file.png"
-	deleted: boolean
 }
 
 /**
