@@ -177,7 +177,10 @@ def deleteClass(request: https_fn.CallableRequest):
                 class_id = request.data.get('id')
                 if teacher is not None and teacher_id is not None and class_id is not None:
                     classes_coll: CollectionReference = db.collection('teachers').document(teacher_id).collection('classes')
-                    classes_coll.document(class_id).delete()
+                    print("deleting class from collection", classes_coll)
+                    doc_ref = classes_coll.document(class_id)
+                    print("deleting this", doc_ref.get().to_dict())
+                    doc_ref.delete()
                     return "success"
         raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 

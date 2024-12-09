@@ -8,12 +8,7 @@ const AppForStudents: FC = () => {
 		id: "test",
 		lesson_plan_id: "test",
 		class_id: "test",
-		student_names: [
-			"Alice",
-			"Bobby",
-			"Danny",
-			"Esha",
-		],
+		student_names: ["Alice", "Bobby", "Danny", "Esha"],
 		teacher_name: "Test Teacher",
 		teacher_email: "test.teacher@school.com",
 		responses_locked: false,
@@ -46,43 +41,52 @@ const AppForStudents: FC = () => {
 			</header>
 			<div className="seek-page">
 				<div className="page-content">
-					{!studentUser && <section>
-						<p>Welcome! What is your name?</p>
-						<select
-							className="large-select"
-							style={{ width: "100%" }}
-							value={studentUser}
-							onChange={(e) => setStudentUser(e.target.value)}
-						>
-							<option key={""} value={undefined}>{"Select from this list"}</option>
-							{
-								theLesson.student_names.map((studentName) => (
-									<option key={studentName} value={studentName}>{studentName}</option>
-								))
-							}</select>
-					</section>}
-					{studentUser && <section>
-						<div style={{ maxWidth: "600px", marginTop: "25px" }}>
-							<textarea
-								id="typed-input"
-								name="typed-input"
-								className="large-input"
-								placeholder="Type your response here..."
-								value={typedInput}
-								onInput={(e) => setTypedInput((e.target as HTMLInputElement).value)}
-								style={{ width: "100%", height: "100px" }}
-							/>
-						</div>
-						<div>
-							<p>Or draw your response below</p>
-							<div style={{ maxWidth: "600px" }}>
-								<CanvasInput canvasRef={canvasRef} />
+					{!studentUser && (
+						<section>
+							<p>Welcome! What is your name?</p>
+							<select
+								className="large-select"
+								style={{ width: "100%" }}
+								value={studentUser}
+								onChange={(e) => setStudentUser(e.target.value)}
+							>
+								<option key={""} value={undefined}>
+									{"Select from this list"}
+								</option>
+								{theLesson.student_names.map((studentName) => (
+									<option key={studentName} value={studentName}>
+										{studentName}
+									</option>
+								))}
+							</select>
+						</section>
+					)}
+					{studentUser && (
+						<section>
+							<div style={{ maxWidth: "600px", marginTop: "25px" }}>
+								<textarea
+									id="typed-input"
+									name="typed-input"
+									className="large-input"
+									placeholder="Type your response here..."
+									value={typedInput}
+									onInput={(e) => setTypedInput((e.target as HTMLInputElement).value)}
+									style={{ width: "100%", height: "100px" }}
+								/>
 							</div>
-						</div>
-						<div style={{ maxWidth: "600px", marginTop: "25px" }}>
-							<button className="large-button" onClick={submit}>Submit</button>
-						</div>
-					</section>}
+							<div>
+								<p>Or draw your response below</p>
+								<div style={{ maxWidth: "600px" }}>
+									<CanvasInput canvasRef={canvasRef} />
+								</div>
+							</div>
+							<div style={{ maxWidth: "600px", marginTop: "25px" }}>
+								<button className="large-button" onClick={submit}>
+									Submit
+								</button>
+							</div>
+						</section>
+					)}
 				</div>
 			</div>
 		</div>

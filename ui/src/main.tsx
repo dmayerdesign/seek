@@ -43,8 +43,8 @@ const router = createBrowserRouter([
 					{
 						path: "*",
 						element: <Navigate to="/for-teachers/home" replace />,
-					}
-				]
+					},
+				],
 			},
 			{
 				path: ":lessonId",

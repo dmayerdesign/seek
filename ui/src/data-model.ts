@@ -104,8 +104,9 @@ export interface LessonResponseAnalysis {
 /**
  * UI-only data model
  */
-export const AppCtx = createContext<AppContext|null>(null)
+export const AppCtx = createContext<AppContext | null>(null)
 export interface AppContext {
 	firebaseApp: FirebaseApp
 	user: User | null | undefined
+	callCloudFunction: <ReturnType = void>(endpoint: string, data?: any) => Promise<ReturnType | null>
 }
