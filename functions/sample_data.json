@@ -9,10 +9,7 @@
                     "id": "lesson_plan_1",
                     "topic": "Introduction to the Microscope",
                     "media_content_urls": [
-                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_1.pdf?alt=media&token=20abf1be-d69f-47d4-9de8-c97808656854",
-                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_1_question_1.pdf?alt=media&token=e8831542-edf4-418c-93dd-1d9f7c3cddc0",
-                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_1_question_2.png?alt=media&token=b84320c0-f2a6-487e-97de-2e31e98770e1",
-                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_1_question_3.png?alt=media&token=fb7b3dd8-e9bb-4794-8487-580ea2c3e2d7"        
+                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_1.pdf?alt=media&token=20abf1be-d69f-47d4-9de8-c97808656854"      
                     ]
                     "questions": [
                         {
@@ -20,19 +17,27 @@
                             "body_text": "What are the main parts of a light microscope and their functions?",
                             "field_of_study": "Biology",
                             "specific_topic": "Introduction to the Microscope",
-
+                            "media_content_urls": [
+                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_1_question_1.pdf?alt=media&token=e8831542-edf4-418c-93dd-1d9f7c3cddc0"
+                            ]
                         },
                         {
                             "id": "lesson_plan_1_question_2",
                             "body_text": "How do you properly focus a specimen under high power magnification?",
                             "field_of_study": "Biology",
                             "specific_topic": "Introduction to the Microscope",
+                            "media_content_urls": [
+                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_1_question_2.png?alt=media&token=b84320c0-f2a6-487e-97de-2e31e98770e1"
+                            ]
                         },
                         {
                             "id": "lesson_plan_1_question_3",
                             "body_text": "Why is it important to start with the lowest magnification when viewing a slide?",
                             "field_of_study": "Biology",
                             "specific_topic": "Introduction to the Microscope",
+                            "media_content_urls": [
+                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_1_question_3.png?alt=media&token=fb7b3dd8-e9bb-4794-8487-580ea2c3e2d7"
+                            ]
                         }
                     ]
                 },
@@ -40,7 +45,7 @@
                     "id": "lesson_plan_2",
                     "topic": "Observing Plant and Animal Cells",
                     "media_content_urls": [
-                                "media/lesson_plan_2"
+                                "mhttps://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_2.pdf?alt=media&token=a952035f-f254-4e1f-b768-35a07b12dbf5"
                             ]
                     "questions": [
                         {
@@ -49,7 +54,7 @@
                             "field_of_study": "Biology",
                             "specific_topic": "Observing Plant and Animal Cells",
                             "media_content_urls": [
-                                "media/lesson_plan_2_question_1"
+                                
                             ]
                         },
                         {
@@ -58,7 +63,7 @@
                             "field_of_study": "Biology",
                             "specific_topic": "Observing Plant and Animal Cells",
                             "media_content_urls": [
-                                "media/lesson_plan_2_question_2"
+                                
                             ]
                         },
                         {
@@ -67,7 +72,7 @@
                             "field_of_study": "Biology",
                             "specific_topic": "Observing Plant and Animal Cells",
                             "media_content_urls": [
-                                "media/lesson_plan_2_question_3"
+                               
                             ]
                         }
                     ]
