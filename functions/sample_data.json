@@ -81,7 +81,7 @@
                     "id": "lesson_plan_3",
                     "topic": "Cell Size and Diffusion",
                     "media_content_urls": [
-                                "media/lesson_plan_3"
+                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_3.pdf?alt=media&token=3675aec6-8d73-48e3-9eff-fa4b9311b14f"
                             ]
                     "questions": [
                         {
@@ -90,16 +90,16 @@
                             "field_of_study": "Biology",
                             "specific_topic": "Cell Size and Diffusion",
                             "media_content_urls": [
-                                "media/lesson_plan_3_question_1"
+                              
                             ]
                         },
                         {
                             "id": "lesson_plan_3_question_2",
-                            "body_text": "How does cell size affect the rate of diffusion?",
+                            "body_text": "Label this cell transport diagram.",
                             "field_of_study": "Biology",
                             "specific_topic": "Cell Size and Diffusion",
                             "media_content_urls": [
-                                "media/lesson_plan_3_question_2"
+                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_3_question_2.png?alt=media&token=daab3d98-c31e-42c7-8ee7-930d3335f0d9"
                             ]
                         },
                         {
@@ -108,7 +108,7 @@
                             "field_of_study": "Biology",
                             "specific_topic": "Cell Size and Diffusion",
                             "media_content_urls": [
-                                "media/lesson_plan_3_question_3"
+                               
                             ]
                         }
                     ]
@@ -117,16 +117,18 @@
                     "id": "lesson_plan_4",
                     "topic": "Cell Membrane Structure and Function",
                     "media_content_urls": [
-                                "media/lesson_plan_4"
+                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_3.pdf?alt=media&token=3675aec6-8d73-48e3-9eff-fa4b9311b14f"
                             ]
                     "questions": [
                         {
                             "id": "lesson_plan_4_question_1",
-                            "body_text": "What is the fluid mosaic model of the cell membrane?",
+                            "body_text": "For each image, determine an appropriate title and label the structures.",
                             "field_of_study": "Biology",
                             "specific_topic": "Cell Membrane Structure and Function",
                             "media_content_urls": [
-                                "media/lesson_plan_4_question_1"
+                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_4_question_1.png?alt=media&token=bbd8fb68-07cf-4eb8-8a3e-2d8a08513dd1",
+                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_4_question_2.png?alt=media&token=dc8c2b0e-7ca5-4470-8d2e-3253cce8512f",
+                                "https://firebasestorage.googleapis.com/v0/b/seek-poe-dev.firebasestorage.app/o/teacher_1%40schoolmail.com%2Fmedia_lesson_plan_4_question_3.png?alt=media&token=87bbd7a3-e6b8-4f03-91e1-fb1ba562491b"
                             ]
                         },
                         {
@@ -135,8 +137,8 @@
                             "field_of_study": "Biology",
                             "specific_topic": "Cell Membrane Structure and Function",
                             "media_content_urls": [
-                                "media/lesson_plan_4_question_2"
-                            ]
+                                
+                                ]
                         },
                         {
                             "id": "lesson_plan_4_question_3",
@@ -144,7 +146,7 @@
                             "field_of_study": "Biology",
                             "specific_topic": "Cell Membrane Structure and Function",
                             "media_content_urls": [
-                                "media/lesson_plan_4_question_3"
+                                
                             ]
                         }
                     ]
