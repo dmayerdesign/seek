@@ -13,8 +13,8 @@ export interface Teacher {
 
 export interface TeacherData extends Teacher {
 	classes: ClassWithStudents[]
-	lesson_plans: LessonPlan[]
-	lessons: Lesson[]
+	lesson_plans: LessonPlanWithQuestions[]
+	lessons: LessonWithResponses[]
 }
 
 export interface Class {
@@ -43,13 +43,16 @@ export interface LessonPlan {
 	teacher_email: string
 	title: string
 	published: boolean
-	questions: LessonQuestion[]
 	created_at: string
 	updated_at: string
+}
+export interface LessonPlanWithQuestions extends LessonPlan {
+	questions: LessonQuestion[]
 }
 
 export interface LessonQuestion {
 	id: string
+	lesson_plan_id: string
 	teacher_email: string
 	body_text: string
 	field_of_study: string
@@ -58,6 +61,8 @@ export interface LessonQuestion {
 	additional_context?: string
 	final_response_categories?: string[]
 	analysis?: LessonQuestionAnalysis
+	created_at: string
+	updated_at: string
 }
 
 export interface LessonQuestionAnalysis {
@@ -74,9 +79,12 @@ export interface Lesson {
 	teacher_email: string
 	responses_locked: boolean
 	student_names_started?: string[]
-	responses?: LessonResponse[]
 	created_at: string
 	updated_at: string
+}
+
+export interface LessonWithResponses extends Lesson {
+	responses?: LessonResponse[]
 }
 
 export interface LessonResponse {

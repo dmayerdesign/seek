@@ -104,6 +104,21 @@ def getTeacherData(request: https_fn.CallableRequest):
                         # Sort students by name
                         cls['students'].sort(key=lambda student: student.get('created_at'))
 
+            # Look up their lesson plans
+            lesson_plans_coll: CollectionReference = teacher_ref.collection('lesson_plans')
+            lesson_plans = list(lesson_plans_coll.stream())
+            if len(lesson_plans) > 0:
+                teacher['lesson_plans'] = [lesson_plans[i].to_dict() for i in range(len(lesson_plans))]
+                for plan in teacher['lesson_plans']:
+                    questions_coll: CollectionReference = lesson_plans_coll.document(plan.get('id')).collection('questions')
+                    questions = list(questions_coll.stream())
+                    if len(questions) > 0:
+                        for i in range(len(questions)):
+                            print(questions[i].to_dict())
+                        plan['questions'] = [questions[i].to_dict() for i in range(len(questions))]
+                        # Sort by created_at
+                        plan['questions'].sort(key=lambda question: question.get('created_at'))
+
             return teacher
 
     raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.NOT_FOUND, message="not found")
@@ -223,78 +238,108 @@ def deleteStudent(request: https_fn.CallableRequest):
 
 @https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
 def putLessonPlan(request: https_fn.CallableRequest):
-    teacher_id = request.data.get('teacher_id')
-    plan_data = request.data
-    plan_id = plan_data['id']
-    if teacher_id is not None and plan_data is not None:
-        db.collection('teachers').document(teacher_id).collection('lesson_plans').document(plan_id).set(plan_data)
-        return "success"
+    if request.auth is not None:
+        user: auth.UserRecord = auth.get_user(request.auth.uid)
+        if user is not None and user.email is not None:
+            teacherMatches = list(db.collection('teachers').where(filter=FieldFilter('email_address', '==', user.email)).stream())
+            if len(teacherMatches) == 1:
+                teacher = teacherMatches[0].to_dict()
+                teacher_id = teacher.get('id')
+                plan_data = request.data
+                plan_id = plan_data['id']
+                if teacher_id is not None and plan_data is not None:
+                    db.collection('teachers').document(teacher_id).collection('lesson_plans').document(plan_id).set(plan_data)
+                    return "success"
     raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
 @https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
 def deleteLessonPlan(request: https_fn.CallableRequest):
-    teacher_id = request.data.get('teacher_id')
-    plan_id = request.data.get('plan_id')
-    if teacher_id is not None and plan_id is not None:
-        db.collection('teachers').document(teacher_id).collection('lesson_plans').document(plan_id).delete()
-        return "success"
+    if request.auth is not None:
+        user: auth.UserRecord = auth.get_user(request.auth.uid)
+        if user is not None and user.email is not None:
+            teacherMatches = list(db.collection('teachers').where(filter=FieldFilter('email_address', '==', user.email)).stream())
+            if len(teacherMatches) == 1:
+                teacher = teacherMatches[0].to_dict()
+                teacher_id = teacher.get('id')
+                plan_id = request.data.get('id')
+                if teacher_id is not None and plan_id is not None:
+                    db.collection('teachers').document(teacher_id).collection('lesson_plans').document(plan_id).delete()
+                    return "success"
     raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
 @https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
 def putLessonQuestion(request: https_fn.CallableRequest):
-    teacher_id = request.data.get('teacher_id')
-    lesson_id = request.data.get('lesson_id')
-    question_data = request.data
-    question_id = question_data['id']
-    if teacher_id is not None and lesson_id is not None and question_data is not None:
-        db.collection('teachers').document(teacher_id).collection(
-            'lesson_plans').document(lesson_id).collection(
-                'questions').document(question_id).set(question_data)
-        return "success"
+    if request.auth is not None:
+        user: auth.UserRecord = auth.get_user(request.auth.uid)
+        if user is not None and user.email is not None:
+            teacherMatches = list(db.collection('teachers').where(filter=FieldFilter('email_address', '==', user.email)).stream())
+            if len(teacherMatches) == 1:
+                teacher = teacherMatches[0].to_dict()
+                teacher_id = teacher.get('id')
+                lesson_id = request.data.get('lesson_id')
+                question_data = request.data
+                question_id = question_data['id']
+                if teacher_id is not None and lesson_id is not None and question_data is not None:
+                    db.collection('teachers').document(teacher_id).collection(
+                        'lesson_plans').document(lesson_id).collection(
+                            'questions').document(question_id).set(question_data)
+                    return "success"
     raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
 @https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
 def deleteLessonQuestion(request: https_fn.CallableRequest):
-    teacher_id = request.data.get('teacher_id')
-    plan_id = request.data.get('plan_id')
-    question_id = request.data.get('question_id')
-    if teacher_id is not None and plan_id is not None and question_id is not None:
-        db.collection('teachers').document(teacher_id).collection('lesson_plans').document(plan_id).collection('questions').document(question_id).delete()
-        return "success"
-    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
+    if request.auth is not None:
+        user: auth.UserRecord = auth.get_user(request.auth.uid)
+        if user is not None and user.email is not None:
+            teacherMatches = list(db.collection('teachers').where(filter=FieldFilter('email_address', '==', user.email)).stream())
+            if len(teacherMatches) == 1:
+                teacher = teacherMatches[0].to_dict()
+                teacher_id = teacher.get('id')
+                plan_id = request.data.get('plan_id')
+                question_id = request.data.get('question_id')
+                if teacher_id is not None and plan_id is not None and question_id is not None:
+                    db.collection('teachers').document(teacher_id).collection('lesson_plans').document(plan_id).collection('questions').document(question_id).delete()
+                    return "success"
+                raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
 # Lock answers and do analysis, return when done
 @https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
 def putLesson(request: https_fn.CallableRequest):
-    teacher_id = request.data.get('teacher_id')
-    new_lesson: Dict[str, Any] = request.data
-    lesson_id = new_lesson.get('id')
-    teacher_ref = db.collection('teachers').document(teacher_id)
-    if teacher_id is not None and new_lesson is not None:
-        lesson_ref = teacher_ref.collection('lessons').document(lesson_id)
-        old_lesson: Lesson = lesson_ref.get().to_dict()
-        # Save the lesson now that we have the old data in memory
-        teacher_ref.collection('lessons').document(lesson_id).set(new_lesson)
-        # If the lesson existed (this is an update, not a create), check if we're going from not locked to locked
-        if old_lesson is not None and not old_lesson.responses_locked and new_lesson.responses_locked:
-            attempts_remaining = 15
-            # Analysis happens asynchronously when the student submits the response
-            # Poll until all responses are analyzed
-            while True:
-                lesson_ref = teacher_ref.collection('lessons').document(lesson_id)
-                responses = list(lesson_ref.collection('responses').stream())
-                if attempts_remaining == 0:
-                    break
-                if all(
-                    response.to_dict().get('analysis') is not None
-                    and response.to_dict().get('analysis') is not ''
-                    for response in responses
-                ):
-                    break
-                else:
-                    attempts_remaining -= 1
-                    asyncio.sleep(2)
-        return "success"
+    if request.auth is not None:
+        user: auth.UserRecord = auth.get_user(request.auth.uid)
+        if user is not None and user.email is not None:
+            teacherMatches = list(db.collection('teachers').where(filter=FieldFilter('email_address', '==', user.email)).stream())
+            if len(teacherMatches) == 1:
+                teacher = teacherMatches[0].to_dict()
+                teacher_id = teacher.get('id')
+                new_lesson: Dict[str, Any] = request.data
+                lesson_id = new_lesson.get('id')
+                teacher_ref = db.collection('teachers').document(teacher_id)
+                if teacher_id is not None and new_lesson is not None:
+                    lesson_ref = teacher_ref.collection('lessons').document(lesson_id)
+                    old_lesson: Lesson = lesson_ref.get().to_dict()
+                    # Save the lesson now that we have the old data in memory
+                    teacher_ref.collection('lessons').document(lesson_id).set(new_lesson)
+                    # If the lesson existed (this is an update, not a create), check if we're going from not locked to locked
+                    if old_lesson is not None and not old_lesson.responses_locked and new_lesson.responses_locked:
+                        attempts_remaining = 15
+                        # Analysis happens asynchronously when the student submits the response
+                        # Poll until all responses are analyzed
+                        while True:
+                            lesson_ref = teacher_ref.collection('lessons').document(lesson_id)
+                            responses = list(lesson_ref.collection('responses').stream())
+                            if attempts_remaining == 0:
+                                break
+                            if all(
+                                response.to_dict().get('analysis') is not None
+                                and response.to_dict().get('analysis') is not ''
+                                for response in responses
+                            ):
+                                break
+                            else:
+                                attempts_remaining -= 1
+                                asyncio.sleep(2)
+                    return "success"
     raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
 @https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))

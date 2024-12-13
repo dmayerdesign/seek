@@ -4,7 +4,7 @@ import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } f
 import { isEqual } from "lodash"
 import { FC, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { v4 as uuidv4 } from "uuid"
-import { AppCtx, Class, ClassWithStudents, LessonPlan, Student, Teacher, TeacherData } from "../data-model"
+import { AppCtx, Class, ClassWithStudents, LessonPlan, LessonPlanWithQuestions, LessonQuestion, Student, Teacher, TeacherData } from "../data-model"
 
 const TeacherHome: FC = () => {
 	const { user, firebaseApp, callCloudFunction } = useContext(AppCtx)!
@@ -19,7 +19,7 @@ const TeacherHome: FC = () => {
 			setTeacherNickname(teacherData.nickname)
 		}
 	}, [teacherData])
-
+	// Sign up/in, teacher data CRUD
 	const createAccount = useCallback(async () => {
 		if (firebaseApp && teacherEmail && teacherPassword) {
 			try {
@@ -97,8 +97,10 @@ const TeacherHome: FC = () => {
 	useEffect(() => {
 		fetchTeacherData()
 	}, [fetchTeacherData])
-	const [studentsCtrl, setStudentsCtrl] = useState<Record<string, Student>>({})
+
+	// Classes/students CRUD
 	const [classesCtrl, setClassesCtrl] = useState<Record<string, Class>>({})
+	const [studentsCtrl, setStudentsCtrl] = useState<Record<string, Student>>({})
 	useEffect(() => {
 		if (teacherData && teacherData.classes) {
 			setClassesCtrl(
@@ -204,6 +206,30 @@ const TeacherHome: FC = () => {
 		},
 		[user, teacherData, studentsCtrl],
 	)
+	const createClass = useCallback(
+		async () => {
+			if (user) {
+				const newClass: Class = {
+					id: uuidv4(),
+					name: "New class",
+					teacher_email: user.email!,
+					created_at: new Date().toISOString(),
+					updated_at: new Date().toISOString(),
+				}
+				// Update our local state
+				setTeacherData(
+					(td) =>
+						({
+							...td,
+							classes: [...(td?.classes ?? []), newClass],
+						}) as TeacherData,
+				)
+				// Then update the database
+				await callCloudFunction("putClass", newClass)
+			}
+		},
+		[user],
+	)
 	const editClass = useCallback(
 		async (id: string, classInput: Class) => {
 			if (user) {
@@ -244,6 +270,191 @@ const TeacherHome: FC = () => {
 			if (user) {
 				try {
 					await callCloudFunction("deleteClass", { id: classId })
+					fetchTeacherData()
+				} catch (e) {
+					console.error(e)
+				}
+			}
+		},
+		[user],
+	)
+
+	// Lesson plans CRUD
+	const [lessonPlansCtrl, setLessonPlansCtrl] = useState<Record<string, LessonPlanWithQuestions>>({})
+	const [lessonQuestionsCtrl, setLessonQuestionsCtrl] = useState<Record<string, LessonQuestion>>({})
+	useEffect(() => {
+		if (teacherData && teacherData.lesson_plans) {
+			setLessonPlansCtrl(
+				teacherData.lesson_plans.reduce(
+					(acc, lp) => {
+						acc[lp.id] = lp
+						return acc
+					},
+					{} as Record<string, LessonPlanWithQuestions>,
+				),
+			)
+			setLessonQuestionsCtrl(
+				teacherData.lesson_plans
+					.flatMap((lp) => lp.questions ?? [])
+					.reduce(
+						(acc, lq) => {
+							acc[lq.id] = lq
+							return acc
+						},
+						{} as Record<string, LessonQuestion>,
+					)
+			)
+		}
+	}, [teacherData])
+	const createLessonPlan = useCallback(
+		async () => {
+			if (user) {
+				const newLessonPlan: LessonPlanWithQuestions = {
+					id: uuidv4(),
+					teacher_email: user.email!,
+					title: "New lesson plan",
+					published: false,
+					questions: [],
+					created_at: new Date().toISOString(),
+					updated_at: new Date().toISOString(),
+				}
+				// Update our local state
+				setTeacherData(
+					(td) =>
+						({
+							...td,
+							lesson_plans: [...(td?.lesson_plans ?? []), newLessonPlan],
+						}) as TeacherData,
+				)
+				// Then update the database
+				await callCloudFunction("putLessonPlan", newLessonPlan)
+			}
+		},
+		[user],
+	)
+	const editLessonPlan = useCallback(
+		async (id: string, lessonPlanInput: LessonPlanWithQuestions) => {
+			if (user) {
+				try {
+					const oldLessonPlan = teacherData?.lesson_plans.find((lp) => lp.id === id)
+					if (teacherData && oldLessonPlan && !isEqual(oldLessonPlan, lessonPlanInput)) {
+						// Update our local state
+						const newLessonPlans = [...teacherData.lesson_plans]
+						newLessonPlans[newLessonPlans.findIndex((lp) => lp.id === id)] = lessonPlanInput
+						setTeacherData(
+							(td) =>
+								({
+									...td,
+									lesson_plans: newLessonPlans,
+								}) as TeacherData,
+						)
+						// Then update the database
+						await callCloudFunction("putLessonPlan", {
+							...lessonPlanInput,
+							updated_at: new Date().toISOString(),
+						})
+						// fetchTeacherData()
+					}
+				} catch (e) {
+					console.error(e)
+				}
+			}
+		},
+		[user, teacherData],
+	)
+	const deleteLessonPlan = useCallback(
+		async (lessonPlanId: string) => {
+			if (user) {
+				try {
+					await callCloudFunction("deleteLessonPlan", { id: lessonPlanId })
+					fetchTeacherData()
+				} catch (e) {
+					console.error(e)
+				}
+			}
+		},
+		[user],
+	)
+	const createLessonQuestion = useCallback(
+		async (lessonPlan: LessonPlanWithQuestions) => {
+			if (user && teacherData) {
+				const newLessonQuestion: LessonQuestion = {
+					id: uuidv4(),
+					lesson_plan_id: lessonPlan.id,
+					teacher_email: user.email!,
+					body_text: "New question",
+					field_of_study: "",
+					specific_topic: "",
+					media_content_urls: [],
+					additional_context: "",
+					final_response_categories: [],
+					analysis: undefined,
+					created_at: new Date().toISOString(),
+					updated_at: new Date().toISOString(),
+				}
+				// Update our local state
+				const newQuestions = [...(lessonPlan.questions ?? []), newLessonQuestion]
+				const newLessonPlan: LessonPlanWithQuestions = {
+					...lessonPlan,
+					questions: newQuestions,
+				}
+				const newLessonPlans = [...teacherData.lesson_plans]
+				newLessonPlans[newLessonPlans.findIndex((lp) => lp.id === lessonPlan.id)] = newLessonPlan
+				setTeacherData(
+					(td) =>
+						({
+							...td,
+							lesson_plans: newLessonPlans,
+						}) as TeacherData,
+				)
+				// Then update the database
+				await callCloudFunction("putLessonQuestion", newLessonQuestion)
+			}
+		},
+		[user, teacherData],
+	)
+	const editLessonQuestion = useCallback(
+		async (id: string, lessonQuestionInput: LessonQuestion) => {
+			if (user) {
+				try {
+					const oldLessonQuestion = teacherData?.lesson_plans
+						.flatMap((lp) => lp.questions ?? [])
+						.find((lq) => lq.id === id)
+					if (teacherData && oldLessonQuestion && !isEqual(oldLessonQuestion, lessonQuestionInput)) {
+						// Update our local state
+						const newQuestions = teacherData.lesson_plans
+							.flatMap((lp) => lp.questions ?? [])
+							.map((lq) => (lq.id === id ? lessonQuestionInput : lq))
+						const newLessonPlans = teacherData.lesson_plans.map((lp) => ({
+							...lp,
+							questions: newQuestions.filter((lq) => lq.id === lp.id),
+						}))
+						setTeacherData(
+							(td) =>
+								({
+									...td,
+									lesson_plans: newLessonPlans,
+								}) as TeacherData,
+						)
+						// Then update the database
+						await callCloudFunction("putLessonQuestion", {
+							...lessonQuestionInput,
+							updated_at: new Date().toISOString(),
+						})
+						// fetchTeacherData()
+					}
+				} catch (e) {
+					console.error(e)
+				}
+			}
+		},
+		[user, teacherData],
+	)
+	const deleteLessonQuestion = useCallback(
+		async (lessonQuestionId: string) => {
+			if (user) {
+				try {
+					await callCloudFunction("deleteLessonQuestion", { id: lessonQuestionId })
 					fetchTeacherData()
 				} catch (e) {
 					console.error(e)
@@ -421,41 +632,87 @@ const TeacherHome: FC = () => {
 								<section>
 									<h2 style={{ display: "flex", justifyContent: "space-between" }}>
 										Lesson plans
-										<button>+ New lesson plan</button>
+										<button
+											onClick={() => createLessonPlan()}
+										>
+											+ Add new lesson plan
+										</button>
 									</h2>
 
-									<ul>
-										<li>
-											<h3>
-												<a href="/">Untitled lesson plan</a>
+									{teacherData.lesson_plans?.map((lp) => lessonPlansCtrl[lp.id] && (
+										<div key={lp.id}>
+											<h3 style={{ display: "flex", justifyContent: "space-between" }}>
+												<input
+													className="inline-input"
+													style={{ flexGrow: 1 }}
+													value={lessonPlansCtrl[lp.id].title}
+													onChange={(e) => {
+														setLessonPlansCtrl((lpc) => ({
+															...lpc,
+															[lp.id]: {
+																...lpc[lp.id],
+																title: e.target.value,
+															},
+														}))
+													}}
+													onKeyDown={(e) => {
+														if (e.key === "Enter") {
+															e.currentTarget.blur()
+														}
+													}}
+													onBlur={() => {
+														setTimeout(() => {
+															editLessonPlan(lp.id, lessonPlansCtrl[lp.id])
+														})
+													}}
+												/>
+												<button
+													onClick={() => {
+														if (window.confirm(`Are you sure you want to delete ${lp.title}?`)) {
+															deleteLessonPlan(lp.id)
+														}
+													}}
+												>
+													<FontAwesomeIcon icon={faTrash} />
+												</button>
 											</h3>
-										</li>
-									</ul>
+											<hr />
+											<ul>
+												{lp.questions?.map(
+													(q) =>
+														lessonQuestionsCtrl[q.id] && (
+															<li key={q.id}>
+																<h4>{q.body_text}</h4>
+															</li>
+														),
+												)}
+											</ul>
+											<div style={{ marginTop: "20px", marginLeft: "20px" }}>
+												<button
+													onClick={() => {
+														createLessonQuestion(lp)
+														// setTimeout(() => {
+														// 	const newInput = document.querySelector("ul:last-child li:last-child h4") as HTMLHeadingElement
+														// 	console.log("got new input?", newInput)
+														// 	newInput?.focus()
+														// 	setTimeout(() => {
+														// 		newInput?.select()
+														// 	})
+														// }, 100)
+													}}
+												>
+													+ Add a question
+												</button>
+											</div>
+										</div>
+									))}
 								</section>
 
 								<section>
 									<h2 style={{ display: "flex", justifyContent: "space-between" }}>
 										Classes and students
 										<button
-											onClick={async () => {
-												const newClass: Class = {
-													id: uuidv4(),
-													name: "New class",
-													teacher_email: user.email!,
-													created_at: new Date().toISOString(),
-													updated_at: new Date().toISOString(),
-												}
-												// Update our local state
-												setTeacherData(
-													(td) =>
-														({
-															...td,
-															classes: [...(td?.classes ?? []), newClass],
-														}) as TeacherData,
-												)
-												// Then update the database
-												await callCloudFunction("putClass", newClass)
-											}}
+											onClick={() => createClass()}
 										>
 											+ Add a class
 										</button>

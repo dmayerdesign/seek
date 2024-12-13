@@ -49,10 +49,13 @@ class LessonPlan:
 @dataclass
 class LessonQuestion:
     id: str
+    lesson_plan_id: str
     teacher_email: str
     body_text: str
     field_of_study: str
     specific_topic: str
+    created_at: str
+    updated_at: str
     media_content_urls: Optional[List[str]] = None
     additional_context: Optional[str] = None
     final_response_categories: Optional[List[str]] = None
@@ -74,10 +77,10 @@ class Lesson:
     teacher_name: str
     teacher_email: str
     responses_locked: bool
-    student_names_started: Optional[List[str]]
-    responses: Optional[List['LessonResponse']]
     created_at: str
     updated_at: str
+    student_names_started: Optional[List[str]]
+    responses: Optional[List['LessonResponse']]
 
 @dataclass
 class LessonResponse:
@@ -86,12 +89,12 @@ class LessonResponse:
     student_id: str
     student_name: str
     lesson_question_id: str
+    created_at: str
+    updated_at: str
     response_image_base64: Optional[str]
     response_text: Optional[str]
     response_as_text: Optional[str]
     analysis: Optional['LessonResponseAnalysis']
-    created_at: str
-    updated_at: str
 
 
 @dataclass
