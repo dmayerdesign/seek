@@ -6,6 +6,8 @@ import AppForStudents from "./pages/AppForStudents"
 import AppForTeachers from "./pages/AppForTeachers"
 import AppHome from "./pages/AppHome"
 import TeacherHome from "./pages/TeacherHome"
+import Lesson from "./pages/Lesson"
+import LessonPlan from "./pages/LessonPlan"
 
 const router = createBrowserRouter([
 	{
@@ -29,16 +31,12 @@ const router = createBrowserRouter([
 						element: <TeacherHome />,
 					},
 					{
-						path: "create-lesson-plan",
-						element: <div>TODO: Add lesson plan</div>,
+						path: "lesson-plans/:id",
+						element: <LessonPlan />,
 					},
 					{
-						path: "edit-lesson-plan",
-						element: <div>TODO: Edit lesson plan</div>,
-					},
-					{
-						path: "lesson",
-						element: <div>TODO: Administer a lesson</div>,
+						path: "lessons/:id",
+						element: <Lesson />,
 					},
 					{
 						path: "*",
@@ -47,7 +45,7 @@ const router = createBrowserRouter([
 				],
 			},
 			{
-				path: ":lessonId",
+				path: ":teacherEmail/:lessonId",
 				element: <AppForStudents />,
 			},
 		],

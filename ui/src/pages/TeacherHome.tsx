@@ -1,14 +1,17 @@
-import { faTrash } from "@fortawesome/free-solid-svg-icons"
+import { faTrashCan } from "@fortawesome/free-regular-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from "firebase/auth"
 import { isEqual } from "lodash"
 import { FC, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { AppCtx, Class, ClassWithStudents, LessonPlan, LessonPlanWithQuestions, LessonQuestion, Student, Teacher, TeacherData } from "../data-model"
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import LessonPlans from "../components/LessonPlans"
+import Lessons from "../components/Lessons"
 
 const TeacherHome: FC = () => {
 	const { user, firebaseApp, callCloudFunction } = useContext(AppCtx)!
-	const [teacherData, setTeacherData] = useState<TeacherData>()
+	const [teacherData, setTeacherData] = useState<TeacherData|null>()
 	const [firstTimeUser, setFirstTimeUser] = useState(false)
 	const teacherNameInputRef = useRef<HTMLInputElement>(null)
 	const [teacherEmail, setTeacherEmail] = useState("")
@@ -44,12 +47,23 @@ const TeacherHome: FC = () => {
 			}
 		}
 	}, [firebaseApp, teacherEmail, teacherPassword])
+
+	// CRUD
+	const [crudError, setCrudError] = useState<string>()
 	const fetchTeacherData = useCallback(async () => {
 		if (user) {
-			const newTeacherData = await callCloudFunction<TeacherData>("getTeacherData", {})
-			if (newTeacherData) {
-				setTeacherData(newTeacherData)
-				fetchLessonPlans()
+			setTeacherData(undefined)
+			try {
+				const newTeacherData = await callCloudFunction<TeacherData>("getTeacherData", {})
+				if (newTeacherData) {
+					setTeacherData(newTeacherData)
+					fetchLessonPlans()
+				} else {
+					setTeacherData(null)
+				}
+			} catch (e) {
+				setCrudError((e as Error).toString())
+				setTeacherData(null)
 			}
 		}
 	}, [user])
@@ -88,6 +102,7 @@ const TeacherHome: FC = () => {
 						await callCloudFunction("putTeacher", teacher)
 					}
 				} catch (e) {
+					setCrudError((e as Error).toString())
 					console.error(e)
 				}
 			}
@@ -186,6 +201,7 @@ const TeacherHome: FC = () => {
 						// fetchTeacherData()
 					}
 				} catch (e) {
+					setCrudError((e as Error).toString())
 					console.error(e)
 				}
 			}
@@ -259,6 +275,7 @@ const TeacherHome: FC = () => {
 						}
 					}
 				} catch (e) {
+					setCrudError((e as Error).toString())
 					console.error(e)
 				}
 			}
@@ -272,191 +289,7 @@ const TeacherHome: FC = () => {
 					await callCloudFunction("deleteClass", { id: classId })
 					fetchTeacherData()
 				} catch (e) {
-					console.error(e)
-				}
-			}
-		},
-		[user],
-	)
-
-	// Lesson plans CRUD
-	const [lessonPlansCtrl, setLessonPlansCtrl] = useState<Record<string, LessonPlanWithQuestions>>({})
-	const [lessonQuestionsCtrl, setLessonQuestionsCtrl] = useState<Record<string, LessonQuestion>>({})
-	useEffect(() => {
-		if (teacherData && teacherData.lesson_plans) {
-			setLessonPlansCtrl(
-				teacherData.lesson_plans.reduce(
-					(acc, lp) => {
-						acc[lp.id] = lp
-						return acc
-					},
-					{} as Record<string, LessonPlanWithQuestions>,
-				),
-			)
-			setLessonQuestionsCtrl(
-				teacherData.lesson_plans
-					.flatMap((lp) => lp.questions ?? [])
-					.reduce(
-						(acc, lq) => {
-							acc[lq.id] = lq
-							return acc
-						},
-						{} as Record<string, LessonQuestion>,
-					)
-			)
-		}
-	}, [teacherData])
-	const createLessonPlan = useCallback(
-		async () => {
-			if (user) {
-				const newLessonPlan: LessonPlanWithQuestions = {
-					id: uuidv4(),
-					teacher_email: user.email!,
-					title: "New lesson plan",
-					published: false,
-					questions: [],
-					created_at: new Date().toISOString(),
-					updated_at: new Date().toISOString(),
-				}
-				// Update our local state
-				setTeacherData(
-					(td) =>
-						({
-							...td,
-							lesson_plans: [...(td?.lesson_plans ?? []), newLessonPlan],
-						}) as TeacherData,
-				)
-				// Then update the database
-				await callCloudFunction("putLessonPlan", newLessonPlan)
-			}
-		},
-		[user],
-	)
-	const editLessonPlan = useCallback(
-		async (id: string, lessonPlanInput: LessonPlanWithQuestions) => {
-			if (user) {
-				try {
-					const oldLessonPlan = teacherData?.lesson_plans.find((lp) => lp.id === id)
-					if (teacherData && oldLessonPlan && !isEqual(oldLessonPlan, lessonPlanInput)) {
-						// Update our local state
-						const newLessonPlans = [...teacherData.lesson_plans]
-						newLessonPlans[newLessonPlans.findIndex((lp) => lp.id === id)] = lessonPlanInput
-						setTeacherData(
-							(td) =>
-								({
-									...td,
-									lesson_plans: newLessonPlans,
-								}) as TeacherData,
-						)
-						// Then update the database
-						await callCloudFunction("putLessonPlan", {
-							...lessonPlanInput,
-							updated_at: new Date().toISOString(),
-						})
-						// fetchTeacherData()
-					}
-				} catch (e) {
-					console.error(e)
-				}
-			}
-		},
-		[user, teacherData],
-	)
-	const deleteLessonPlan = useCallback(
-		async (lessonPlanId: string) => {
-			if (user) {
-				try {
-					await callCloudFunction("deleteLessonPlan", { id: lessonPlanId })
-					fetchTeacherData()
-				} catch (e) {
-					console.error(e)
-				}
-			}
-		},
-		[user],
-	)
-	const createLessonQuestion = useCallback(
-		async (lessonPlan: LessonPlanWithQuestions) => {
-			if (user && teacherData) {
-				const newLessonQuestion: LessonQuestion = {
-					id: uuidv4(),
-					lesson_plan_id: lessonPlan.id,
-					teacher_email: user.email!,
-					body_text: "New question",
-					field_of_study: "",
-					specific_topic: "",
-					media_content_urls: [],
-					additional_context: "",
-					final_response_categories: [],
-					analysis: undefined,
-					created_at: new Date().toISOString(),
-					updated_at: new Date().toISOString(),
-				}
-				// Update our local state
-				const newQuestions = [...(lessonPlan.questions ?? []), newLessonQuestion]
-				const newLessonPlan: LessonPlanWithQuestions = {
-					...lessonPlan,
-					questions: newQuestions,
-				}
-				const newLessonPlans = [...teacherData.lesson_plans]
-				newLessonPlans[newLessonPlans.findIndex((lp) => lp.id === lessonPlan.id)] = newLessonPlan
-				setTeacherData(
-					(td) =>
-						({
-							...td,
-							lesson_plans: newLessonPlans,
-						}) as TeacherData,
-				)
-				// Then update the database
-				await callCloudFunction("putLessonQuestion", newLessonQuestion)
-			}
-		},
-		[user, teacherData],
-	)
-	const editLessonQuestion = useCallback(
-		async (id: string, lessonQuestionInput: LessonQuestion) => {
-			if (user) {
-				try {
-					const oldLessonQuestion = teacherData?.lesson_plans
-						.flatMap((lp) => lp.questions ?? [])
-						.find((lq) => lq.id === id)
-					if (teacherData && oldLessonQuestion && !isEqual(oldLessonQuestion, lessonQuestionInput)) {
-						// Update our local state
-						const newQuestions = teacherData.lesson_plans
-							.flatMap((lp) => lp.questions ?? [])
-							.map((lq) => (lq.id === id ? lessonQuestionInput : lq))
-						const newLessonPlans = teacherData.lesson_plans.map((lp) => ({
-							...lp,
-							questions: newQuestions.filter((lq) => lq.id === lp.id),
-						}))
-						setTeacherData(
-							(td) =>
-								({
-									...td,
-									lesson_plans: newLessonPlans,
-								}) as TeacherData,
-						)
-						// Then update the database
-						await callCloudFunction("putLessonQuestion", {
-							...lessonQuestionInput,
-							updated_at: new Date().toISOString(),
-						})
-						// fetchTeacherData()
-					}
-				} catch (e) {
-					console.error(e)
-				}
-			}
-		},
-		[user, teacherData],
-	)
-	const deleteLessonQuestion = useCallback(
-		async (lessonQuestionId: string) => {
-			if (user) {
-				try {
-					await callCloudFunction("deleteLessonQuestion", { id: lessonQuestionId })
-					fetchTeacherData()
-				} catch (e) {
+					setCrudError((e as Error).toString())
 					console.error(e)
 				}
 			}
@@ -467,7 +300,13 @@ const TeacherHome: FC = () => {
 	return (
 		<div className="light">
 			<div className="seek-page">
-				{user === undefined ? (
+				{crudError ? (
+					<>
+						<div className="page-content">
+							<p>Oops -- there was an error trying to load the page. Refresh the page to try again.</p>
+						</div>
+					</>
+				) : user === undefined ? (
 					<>
 						<div className="page-content">
 							<p>Loading...</p>
@@ -476,354 +315,277 @@ const TeacherHome: FC = () => {
 				) : user === null ? (
 					<div className="page-content">
 						{firstTimeUser ? (
-							<section>
-								<h1>Create your teacher account</h1>
-								<p>
-									<button onClick={() => setFirstTimeUser(false)}>I already have one</button>
-								</p>
-								<div role="form">
-									<div>
-										<label htmlFor="email">Email</label>
-										<input
-											type="email"
-											id="email"
-											name="email"
-											required
-											className="large-input"
-											value={teacherEmail}
-											onChange={(e) => setTeacherEmail(e.target.value)}
-										/>
-									</div>
+							<section className="faint-bg">
+								<div className="content-gutters">
+									<h1>Create your teacher account</h1>
+									<p>
+										<button onClick={() => setFirstTimeUser(false)}>I already have one</button>
+									</p>
+									<div role="form">
+										<div>
+											<label htmlFor="email">Email</label>
+											<input
+												type="email"
+												id="email"
+												name="email"
+												required
+												className="large-input"
+												value={teacherEmail}
+												onChange={(e) => setTeacherEmail(e.target.value)}
+											/>
+										</div>
 
-									<div>
-										<label htmlFor="password">Password</label>
-										<input
-											type="password"
-											id="password"
-											name="password"
-											required
-											className="large-input"
-											value={teacherPassword}
-											onChange={(e) => setTeacherPassword(e.target.value)}
-										/>
-									</div>
+										<div>
+											<label htmlFor="password">Password</label>
+											<input
+												type="password"
+												id="password"
+												name="password"
+												required
+												className="large-input"
+												value={teacherPassword}
+												onChange={(e) => setTeacherPassword(e.target.value)}
+											/>
+										</div>
 
-									<button
-										className="large-button"
-										type="submit"
-										onClick={() => {
-											createAccount().then(() => {
-												putTeacherData({
-													email_address: teacherEmail,
+										<button
+											className="large-button"
+											type="submit"
+											onClick={() => {
+												createAccount().then(() => {
+													putTeacherData({
+														email_address: teacherEmail,
+													})
 												})
-											})
-										}}
-									>
-										Create Account
-									</button>
+											}}
+										>
+											Create Account
+										</button>
+									</div>
 								</div>
 							</section>
 						) : (
-							<section>
-								<h1>Sign into your teacher account</h1>
-								<p>
-									<button onClick={() => setFirstTimeUser(true)}>I don't have an account</button>
-								</p>
-								<div role="form">
-									<div>
-										<label htmlFor="email">Email</label>
-										<input
-											type="email"
-											id="email"
-											name="email"
-											required
-											className="large-input"
-											value={teacherEmail}
-											onChange={(e) => setTeacherEmail(e.target.value)}
-										/>
-									</div>
+							<section className="faint-bg">
+								<div className="content-gutters">
+									<h1>Sign into your teacher account</h1>
+									<p>
+										<button onClick={() => setFirstTimeUser(true)}>I don't have an account</button>
+									</p>
+									<div role="form">
+										<div>
+											<label htmlFor="email">Email</label>
+											<input
+												type="email"
+												id="email"
+												name="email"
+												required
+												className="large-input"
+												value={teacherEmail}
+												onChange={(e) => setTeacherEmail(e.target.value)}
+											/>
+										</div>
 
-									<div>
-										<label htmlFor="password">Password</label>
-										<input
-											type="password"
-											id="password"
-											name="password"
-											required
-											className="large-input"
-											value={teacherPassword}
-											onChange={(e) => setTeacherPassword(e.target.value)}
-										/>
-									</div>
+										<div>
+											<label htmlFor="password">Password</label>
+											<input
+												type="password"
+												id="password"
+												name="password"
+												required
+												className="large-input"
+												value={teacherPassword}
+												onChange={(e) => setTeacherPassword(e.target.value)}
+											/>
+										</div>
 
-									<button
-										className="large-button"
-										type="submit"
-										onClick={() => {
-											signIn().then(() => {
-												fetchTeacherData()
-											})
-										}}
-									>
-										Log in
-									</button>
+										<button
+											className="large-button"
+											type="submit"
+											onClick={() => {
+												signIn().then(() => {
+													fetchTeacherData()
+												})
+											}}
+										>
+											Log in
+										</button>
+									</div>
 								</div>
 							</section>
 						)}
 					</div>
 				) : (
 					<div className="page-content">
-						<section>
-							<h2>Set up your profile</h2>
-
-							<div style={{ marginBottom: "10px" }}>
-								<label htmlFor="teacher-profile-name">Your name</label>
-								<div style={{ fontSize: "2.4rem" }}>
-									<input
-										ref={teacherNameInputRef}
-										id="teacher-profile-name"
-										className="inline-input"
-										placeholder="What do students call you?"
-										style={{
-											width: "100%",
-											maxWidth: "400px",
-											marginTop: "5px",
-										}}
-										value={teacherNickname}
-										onChange={(e) => setTeacherNickname(e.target.value)}
-										onKeyDown={(e) => {
-											if (e.key === "Enter") {
-												teacherNameInputRef.current?.blur()
-											}
-										}}
-										onBlur={() => {
-											setTimeout(() => {
-												putTeacherData({
-													nickname: teacherNickname,
-												})
-											})
-										}}
-									/>
-								</div>
-							</div>
-						</section>
-
-						{!teacherData ? (
+						{teacherData === undefined ? (
 							<>
 								<p>Loading...</p>
 							</>
 						) : (
 							<>
-								<section>
-									<h2 style={{ display: "flex", justifyContent: "space-between" }}>
-										Lessons
-										<button>+ Begin lesson</button>
-									</h2>
-
-									<ul>
-										<li>
-											<h3>
-												<a href="/">Untitled lesson</a>
-											</h3>
-										</li>
-									</ul>
-								</section>
-
-								<section>
-									<h2 style={{ display: "flex", justifyContent: "space-between" }}>
-										Lesson plans
-										<button
-											onClick={() => createLessonPlan()}
-										>
-											+ Add new lesson plan
-										</button>
-									</h2>
-
-									{teacherData.lesson_plans?.map((lp) => lessonPlansCtrl[lp.id] && (
-										<div key={lp.id}>
-											<h3 style={{ display: "flex", justifyContent: "space-between" }}>
+								<section className="faint-bg">
+									<div className="content-gutters">
+										<h2>Set up your profile</h2>
+									</div>
+									<hr />
+									<div className="content-gutters">
+										<div style={{ marginBottom: "10px" }}>
+											<label htmlFor="teacher-profile-name">Your name</label>
+											<div style={{ fontSize: "2.4rem" }}>
 												<input
+													ref={teacherNameInputRef}
+													id="teacher-profile-name"
 													className="inline-input"
-													style={{ flexGrow: 1 }}
-													value={lessonPlansCtrl[lp.id].title}
-													onChange={(e) => {
-														setLessonPlansCtrl((lpc) => ({
-															...lpc,
-															[lp.id]: {
-																...lpc[lp.id],
-																title: e.target.value,
-															},
-														}))
+													placeholder="What do students call you?"
+													style={{
+														width: "100%",
+														maxWidth: "400px",
+														marginTop: "5px",
 													}}
+													value={teacherNickname}
+													onChange={(e) => setTeacherNickname(e.target.value)}
 													onKeyDown={(e) => {
 														if (e.key === "Enter") {
-															e.currentTarget.blur()
+															teacherNameInputRef.current?.blur()
 														}
 													}}
 													onBlur={() => {
 														setTimeout(() => {
-															editLessonPlan(lp.id, lessonPlansCtrl[lp.id])
+															putTeacherData({
+																nickname: teacherNickname,
+															})
 														})
 													}}
 												/>
-												<button
-													onClick={() => {
-														if (window.confirm(`Are you sure you want to delete ${lp.title}?`)) {
-															deleteLessonPlan(lp.id)
-														}
-													}}
-												>
-													<FontAwesomeIcon icon={faTrash} />
-												</button>
-											</h3>
-											<hr />
-											<ul>
-												{lp.questions?.map(
-													(q) =>
-														lessonQuestionsCtrl[q.id] && (
-															<li key={q.id}>
-																<h4>{q.body_text}</h4>
-															</li>
-														),
-												)}
-											</ul>
-											<div style={{ marginTop: "20px", marginLeft: "20px" }}>
-												<button
-													onClick={() => {
-														createLessonQuestion(lp)
-														// setTimeout(() => {
-														// 	const newInput = document.querySelector("ul:last-child li:last-child h4") as HTMLHeadingElement
-														// 	console.log("got new input?", newInput)
-														// 	newInput?.focus()
-														// 	setTimeout(() => {
-														// 		newInput?.select()
-														// 	})
-														// }, 100)
-													}}
-												>
-													+ Add a question
-												</button>
 											</div>
 										</div>
-									))}
+									</div>
 								</section>
+								{teacherData && <section className="faint-bg">
+									<Lessons
+										teacherData={teacherData}
+										setTeacherData={setTeacherData}
+										refreshTeacherData={fetchTeacherData}
+									/>
+								</section>}
 
-								<section>
-									<h2 style={{ display: "flex", justifyContent: "space-between" }}>
-										Classes and students
-										<button
-											onClick={() => createClass()}
-										>
-											+ Add a class
-										</button>
-									</h2>
+								{teacherData && <section className="faint-bg">
+									<LessonPlans
+										teacherData={teacherData}
+										setTeacherData={setTeacherData}
+										refreshTeacherData={fetchTeacherData}
+									/>
+								</section>}
 
-									{teacherData.classes?.map((c) => classesCtrl[c.id] && (
-										<div key={c.id}>
-											<h3 style={{ display: "flex", justifyContent: "space-between" }}>
-												<input
-													className="inline-input"
-													style={{ flexGrow: 1 }}
-													value={classesCtrl[c.id].name}
-													onChange={(e) => {
-														setClassesCtrl((cc) => ({
-															...cc,
-															[c.id]: {
-																...cc[c.id],
-																name: e.target.value,
-															},
-														}))
-													}}
-													onKeyDown={(e) => {
-														if (e.key === "Enter") {
-															e.currentTarget.blur()
-														}
-													}}
-													onBlur={() => {
-														setTimeout(() => {
-															editClass(c.id, classesCtrl[c.id])
-														})
-													}}
-												/>
-												<button
-													onClick={() => {
-														if (window.confirm(`Are you sure you want to delete ${c.name}?`)) {
-															deleteClass(c.id)
-														}
-													}}
-												>
-													<FontAwesomeIcon icon={faTrash} />
-												</button>
-											</h3>
-											<hr />
-											<ul id="students">
-												{c.students?.map(
-													(s) =>
-														studentsCtrl[s.id] && (
-															<li
-																key={s.id}
-																style={{
-																	display: "flex",
-																	justifyContent: "space-between",
-																	gap: "20px",
-																}}
-															>
-																<input
-																	className="inline-input"
-																	style={{ flexGrow: 1 }}
-																	value={studentsCtrl[s.id].nickname}
-																	onChange={(e) => {
-																		setStudentsCtrl((sc) => ({
-																			...sc,
-																			[s.id]: {
-																				...sc[s.id],
-																				nickname: e.target.value,
-																			},
-																		}))
-																	}}
-																	onKeyDown={(e) => {
-																		if (e.key === "Enter") {
-																			e.currentTarget.blur()
-																		}
-																	}}
-																	onBlur={() => {
-																		setTimeout(() => {
-																			editStudent(s.id, studentsCtrl[s.id])
-																		})
-																	}}
-																/>
-																<button
-																	onClick={() => {
-																		deleteStudent(s.id, c.id)
+								<section className="faint-bg">
+									<div className="content-gutters">
+										<h2 style={{ display: "flex", justifyContent: "space-between" }}>
+											Classes and students
+											<button
+												onClick={() => createClass()}
+											>
+												+ Add a class
+											</button>
+										</h2>
+									</div>
+									<hr />
+									<div className="content-gutters">
+										{teacherData?.classes?.map((c) => classesCtrl[c.id] && (
+											<div key={c.id}>
+												<h3 style={{ display: "flex", justifyContent: "space-between" }}>
+													<input
+														className="inline-input"
+														style={{ flexGrow: 1 }}
+														value={classesCtrl[c.id].name}
+														onChange={(e) => {
+															setClassesCtrl((cc) => ({
+																...cc,
+																[c.id]: {
+																	...cc[c.id],
+																	name: e.target.value,
+																},
+															}))
+														}}
+														onKeyDown={(e) => {
+															if (e.key === "Enter") {
+																e.currentTarget.blur()
+															}
+														}}
+														onBlur={() => {
+															setTimeout(() => {
+																editClass(c.id, classesCtrl[c.id])
+															})
+														}}
+													/>
+													<button
+														onClick={() => {
+															if (window.confirm(`Are you sure you want to delete ${c.name}?`)) {
+																deleteClass(c.id)
+															}
+														}}
+													>
+														<FontAwesomeIcon icon={faTrashCan} />
+													</button>
+												</h3>
+												<hr />
+												<ul id="students">
+													{c.students?.map(
+														(s) =>
+															studentsCtrl[s.id] && (
+																<li
+																	key={s.id}
+																	style={{
+																		display: "flex",
+																		justifyContent: "space-between",
+																		gap: "20px",
 																	}}
 																>
-																	<FontAwesomeIcon icon={faTrash} />
-																</button>
-															</li>
-														),
-												)}
-											</ul>
-											<div style={{ marginTop: "20px", marginLeft: "20px" }}>
-												<button
-													onClick={() => {
-														createStudent(c)
-														setTimeout(() => {
-															const newInput = document.querySelector(
-																"#students li:last-child input",
-															) as HTMLInputElement
-															console.log("got new input?", newInput)
-															newInput?.focus()
-															setTimeout(() => {
-																newInput?.select()
-															})
-														}, 100)
-													}}
-												>
-													+ Add a student
-												</button>
+																	<input
+																		className="inline-input"
+																		style={{ flexGrow: 1 }}
+																		value={studentsCtrl[s.id].nickname}
+																		onChange={(e) => {
+																			setStudentsCtrl((sc) => ({
+																				...sc,
+																				[s.id]: {
+																					...sc[s.id],
+																					nickname: e.target.value,
+																				},
+																			}))
+																		}}
+																		onKeyDown={(e) => {
+																			if (e.key === "Enter") {
+																				e.currentTarget.blur()
+																			}
+																		}}
+																		onBlur={() => {
+																			setTimeout(() => {
+																				editStudent(s.id, studentsCtrl[s.id])
+																			})
+																		}}
+																	/>
+																	<button
+																		onClick={() => {
+																			deleteStudent(s.id, c.id)
+																		}}
+																	>
+																		<FontAwesomeIcon icon={faTrashCan} />
+																	</button>
+																</li>
+															),
+													)}
+												</ul>
+												<div style={{ marginTop: "20px", marginLeft: "20px" }}>
+													<button
+														onClick={() => {
+															createStudent(c)
+														}}
+													>
+														+ Add a student
+													</button>
+												</div>
 											</div>
-										</div>
-									))}
+										))}
+									</div>
 								</section>
 							</>
 						)}

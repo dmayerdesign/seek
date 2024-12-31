@@ -55,32 +55,35 @@ export interface LessonQuestion {
 	lesson_plan_id: string
 	teacher_email: string
 	body_text: string
-	field_of_study: string
-	specific_topic: string
+	// field_of_study: string
+	// specific_topic: string
 	media_content_urls?: string[]
-	additional_context?: string
-	final_response_categories?: string[]
-	analysis?: LessonQuestionAnalysis
+	context_material_urls?: string[]
+	created_at: string
+	updated_at: string
+}
+
+export interface Lesson {
+	id: string // Not a UUID like the others, rather a shorter string for use as a link
+	lesson_name: string
+	lesson_plan_id: string
+	lesson_plan_name: string
+	class_id: string
+	class_name: string
+	teacher_name: string
+	teacher_email: string
+	responses_locked: boolean
+	deleted?: boolean
+	student_names_started?: string[]
+	responses?: LessonResponse[]
+	analysis_by_question_id?: Record<string, LessonQuestionAnalysis>
 	created_at: string
 	updated_at: string
 }
 
 export interface LessonQuestionAnalysis {
-	additional_context_summarized?: string
-	suggested_response_categories?: string[]
-}
-
-export interface Lesson {
-	id: string // Not a UUID like the others, rather a shorter string for use as a link
-	lesson_plan_id: string
-	class_id: string
-	student_names: string[]
-	teacher_name: string
-	teacher_email: string
-	responses_locked: boolean
-	student_names_started?: string[]
-	created_at: string
-	updated_at: string
+	question_id: string
+	responses_by_category: Record<string, LessonResponse>
 }
 
 export interface LessonWithResponses extends Lesson {
@@ -90,23 +93,19 @@ export interface LessonWithResponses extends Lesson {
 export interface LessonResponse {
 	id: string
 	teacher_email: string
+	question_id: string
+	lesson_id: string
 	student_id: string
 	student_name: string
-	lesson_question_id: string
 	response_image_base64?: string
 	response_text?: string
-	response_as_text?: string
 	analysis?: LessonResponseAnalysis
 	created_at: string
 	updated_at: string
 }
 
 export interface LessonResponseAnalysis {
-	id: string
-	question_id: string
-	response_category: string
-	response_category_explanation: string
-	response_category_alternatives: string[]
+	response_summary: string
 }
 
 /**
@@ -117,4 +116,5 @@ export interface AppContext {
 	firebaseApp: FirebaseApp
 	user: User | null | undefined
 	callCloudFunction: <ReturnType = void>(endpoint: string, data?: any) => Promise<ReturnType | null>
+	uploadFile: (file: File, destFolder: string) => Promise<string>
 }

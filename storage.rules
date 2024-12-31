@@ -2,9 +2,14 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    match /{allPaths=**} {
+    match /{teacherId}/{allPaths=**} {
       allow read;
-      allow write: if request.resource.size < 5 * 1024 * 1024; // 5MB max file size
+      allow write: if request.auth.uid == firestore.get(/databases/(default)/documents/teachers/$(teacherId)).data.user_id && request.resource.size < 10 * 1024 * 1024; // 10MiB max file size;
+    }
+
+    match /{teacherId}/lesson-responses/{allPaths=**} {
+      allow read;
+      allow write: if request.resource.size < 5 * 1024 * 1024; // 5MiB max file size
     }
   }
 }

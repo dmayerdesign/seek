@@ -7,7 +7,7 @@ service cloud.firestore {
     }
 
     match /teachers/{teacherId} {
-      allow read: if request.auth.uid == resource.data.user_id;
+      allow read;
       allow write: if request.auth.uid == resource.data.user_id || request.auth.token.email == 'damayer92@gmail.com';
 
       match /{document=**} {
