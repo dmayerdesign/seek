@@ -76,6 +76,8 @@ class Lesson:
     updated_at: str
     deleted: Optional[bool] = None
     student_names_started: Optional[List[str]] = None
+    class_data: Optional['Class'] = None
+    lesson_plan: Optional['LessonPlan'] = None
     responses: Optional[List['LessonResponse']] = None
     analysis_by_question_id: Optional[Dict[str, 'LessonQuestionAnalysis']] = None
 
@@ -83,7 +85,7 @@ class Lesson:
 @dataclass
 class LessonQuestionAnalysis:
     question_id: str
-    responses_by_category: Dict[str, 'LessonResponse']
+    responses_by_category: Dict[str, List['LessonResponse']]
 
 
 @dataclass
@@ -96,9 +98,9 @@ class LessonResponse:
     student_name: str
     created_at: str
     updated_at: str
-    response_image_base64: Optional[str]
-    response_text: Optional[str]
-    analysis: Optional['LessonResponseAnalysis']
+    response_image_base64: Optional[str] = None
+    response_text: Optional[str] = None
+    analysis: Optional['LessonResponseAnalysis'] = None
 
 
 @dataclass

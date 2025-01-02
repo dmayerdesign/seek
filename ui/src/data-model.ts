@@ -73,17 +73,19 @@ export interface Lesson {
 	teacher_name: string
 	teacher_email: string
 	responses_locked: boolean
-	deleted?: boolean
-	student_names_started?: string[]
-	responses?: LessonResponse[]
-	analysis_by_question_id?: Record<string, LessonQuestionAnalysis>
 	created_at: string
 	updated_at: string
+	deleted?: boolean
+	student_names_started?: string[]
+	class_data?: ClassWithStudents
+	lesson_plan?: LessonPlanWithQuestions
+	responses?: LessonResponse[]
+	analysis_by_question_id?: Record<string, LessonQuestionAnalysis>
 }
 
 export interface LessonQuestionAnalysis {
 	question_id: string
-	responses_by_category: Record<string, LessonResponse>
+	responses_by_category: Record<string, LessonResponse[]>
 }
 
 export interface LessonWithResponses extends Lesson {

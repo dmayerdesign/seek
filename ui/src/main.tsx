@@ -1,13 +1,14 @@
 import { createRoot } from "react-dom/client"
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom"
 import App from "./App"
-import "./main.css"
 import AppForStudents from "./pages/AppForStudents"
 import AppForTeachers from "./pages/AppForTeachers"
-import AppHome from "./pages/AppHome"
 import TeacherHome from "./pages/TeacherHome"
 import Lesson from "./pages/Lesson"
 import LessonPlan from "./pages/LessonPlan"
+
+import "dragula/dist/dragula.css"
+import "./main.css"
 
 const router = createBrowserRouter([
 	{

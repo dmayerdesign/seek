@@ -156,7 +156,20 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 						const newLessonPlans = teacherData.lesson_plans.map((lp) => lp.id == lessonPlanId ? ({
 							...lp,
 							questions: lp.questions
-								.map((lq) => (lq.id === lessonQuestionId ? lessonQuestionInput : lq)),
+								.map((lq) => (lq.id === lessonQuestionId
+									? {
+										...lq,
+										...lessonQuestionInput,
+										media_content_urls: [
+											...(lq.media_content_urls ?? []),
+											...(lessonQuestionInput.media_content_urls ?? []),
+										],
+										context_material_urls: [
+											...(lq.context_material_urls ?? []),
+											...(lessonQuestionInput.context_material_urls ?? []),
+										],
+									}
+									: lq)),
 						}) : lp)
 						setTeacherData(
 							(td) =>
@@ -326,7 +339,13 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 																		{q.media_content_urls?.map((url) => {
 																			const decodedUrl = decodeURIComponent(url)
 																			return <li key={decodedUrl}
-																				style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0", gap: "20px" }}>
+																				style={{
+																					display: "flex",
+																					alignItems: "center",
+																					justifyContent: "space-between",
+																					padding: "0",
+																					gap: "20px",
+																				}}>
 																				<div>
 																					{decodedUrl.split("/").pop()?.split("?")[0].match(/\.(jpg|jpeg|png|gif)$/gi)
 																						? <img key={decodedUrl} src={url} style={{

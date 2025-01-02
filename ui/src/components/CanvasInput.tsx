@@ -1,12 +1,13 @@
+import { faTrashCan } from "@fortawesome/free-regular-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { FC, MutableRefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 
 export interface CanvasInputProps {
 	canvasRef: MutableRefObject<HTMLCanvasElement | null>
+	containerRef: MutableRefObject<HTMLDivElement | null>
 }
 
-const CanvasInput: FC<CanvasInputProps> = ({ canvasRef }) => {
-	// const canvasRef = useRef<HTMLCanvasElement>(null)
-	const containerRef = useRef<HTMLDivElement>(null)
+const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef }) => {
 	const ctx = useRef<CanvasRenderingContext2D>()
 	const flag = useRef(false)
 	const prevX = useRef(0)
@@ -75,8 +76,8 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef }) => {
 			if (canvas && container && res == "down") {
 				prevX.current = currX.current
 				prevY.current = currY.current
-				currX.current = e.clientX - canvas.offsetLeft - container.offsetLeft
-				currY.current = e.clientY - canvas.offsetTop - container.offsetTop
+				currX.current = e.clientX - canvas.offsetLeft - container.getBoundingClientRect().left
+				currY.current = e.clientY - canvas.offsetTop - container.getBoundingClientRect().top
 
 				flag.current = true
 				dotFlag.current = true
@@ -94,8 +95,8 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef }) => {
 			if (res == "move" && canvas && container && flag.current) {
 				prevX.current = currX.current
 				prevY.current = currY.current
-				currX.current = e.clientX - canvas.offsetLeft - container.offsetLeft
-				currY.current = e.clientY - canvas.offsetTop - container.offsetTop
+				currX.current = e.clientX - canvas.offsetLeft - container.getBoundingClientRect().left
+				currY.current = e.clientY - canvas.offsetTop - container.getBoundingClientRect().top
 				draw()
 			}
 		},
@@ -140,7 +141,7 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef }) => {
 
 	return (
 		<>
-			<div
+			<div id="canvas-container"
 				ref={containerRef}
 				style={{
 					position: "relative",
@@ -164,12 +165,19 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef }) => {
 				</div>
 				<div
 					style={{
-						marginTop: "10px",
+						position: "absolute",
+						top: "-33px",
 						width: "100%",
-						textAlign: "center",
+						textAlign: "right",
 					}}
 				>
-					<button onClick={() => clearAll()}>Clear and start over</button>
+					<button onClick={() => clearAll()}
+						style={{
+							fontSize: "12px",
+						}}>
+						<FontAwesomeIcon icon={faTrashCan} />&nbsp;
+						Clear and start over
+					</button>
 				</div>
 			</div>
 		</>

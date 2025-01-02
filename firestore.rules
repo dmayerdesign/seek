@@ -14,7 +14,7 @@ service cloud.firestore {
         allow read, write: if request.auth.uid == get(/databases/$(database)/documents/teachers/$(teacherId)).data.user_id;
       }
 
-      match /lesson-plans/{lessonId} {
+      match /lesson-plans/{lessonPlanId} {
         allow read;
         allow write: if request.auth.uid == get(/databases/$(database)/documents/teachers/$(teacherId)).data.user_id;
 

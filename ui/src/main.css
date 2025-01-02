@@ -90,7 +90,7 @@ section {
 	a,
 	label {
 		font-weight: bold;
-		color: #286ba9 !important;
+		color: #111 !important;
 	}
 	.large-button {
 		color: #fafafa !important;
@@ -145,7 +145,7 @@ section {
 	}
 	.large-button {
 		background: #adc9e4;
-		color: #286ba9 !important;
+		color: #111 !important;
 	}
 	.inline-select {
 		background: #333;
@@ -191,6 +191,11 @@ button {
 	font-weight: bold;
 	cursor: pointer;
 	font-size: 1.5rem;
+}
+button:disabled {
+	cursor: default;
+	pointer-events: none;
+	opacity: 0.5;
 }
 .large-button,
 .large-select,

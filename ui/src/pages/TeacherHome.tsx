@@ -491,7 +491,7 @@ const TeacherHome: FC = () => {
 									<div className="content-gutters">
 										{teacherData?.classes?.map((c) => classesCtrl[c.id] && (
 											<div key={c.id}>
-												<h3 style={{ display: "flex", justifyContent: "space-between" }}>
+												<h3 style={{ display: "flex", justifyContent: "space-between", marginTop: "35px" }}>
 													<input
 														className="inline-input"
 														style={{ flexGrow: 1 }}
@@ -574,7 +574,7 @@ const TeacherHome: FC = () => {
 															),
 													)}
 												</ul>
-												<div style={{ marginTop: "20px", marginLeft: "20px" }}>
+												<div style={{ marginTop: "10px", marginLeft: "20px" }}>
 													<button
 														onClick={() => {
 															createStudent(c)

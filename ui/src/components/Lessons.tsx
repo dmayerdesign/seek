@@ -1,8 +1,6 @@
-import { faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import { faPlay } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { MD5 } from "crypto-js";
-import { isEqual } from "lodash";
 import { Dispatch, FC, SetStateAction, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";

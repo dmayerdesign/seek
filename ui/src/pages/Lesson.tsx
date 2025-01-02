@@ -1,10 +1,12 @@
-import { FC, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createRef, FC, ForwardRefRenderFunction, MutableRefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AppCtx, LessonPlanWithQuestions, LessonWithResponses, TeacherData } from "../data-model";
 import { useNavigate, useParams } from "react-router-dom";
+import { parseISO } from "date-fns"
 import { isEqual } from "lodash";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrashCan } from "@fortawesome/free-regular-svg-icons";
-import { faChevronLeft } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faLink } from "@fortawesome/free-solid-svg-icons";
+import LessonQuestionResponses from "./LessonQuestionResponses";
 
 export interface LessonProps {}
 
@@ -62,10 +64,15 @@ const Lesson: FC<LessonProps> = ({}) => {
                     if (oldLesson && !isEqual(oldLesson, lessonInput)) {
                         // Update our local state
                         let newLessons = [...teacherData.lessons]
-                        newLessons[newLessons.findIndex((lp) => lp.id === id)] = lessonInput
+                        const newLesson = {
+                            ...oldLesson,
+                            ...lessonInput,
+                        }
+                        newLessons[newLessons.findIndex((lp) => lp.id === id)] = newLesson
                         if (lessonInput.deleted) {
                             newLessons = newLessons.filter((lp) => lp.id !== id)
                         }
+                        setLesson(newLesson)
                         setTeacherData(
                             (td) =>
                                 ({
@@ -88,8 +95,25 @@ const Lesson: FC<LessonProps> = ({}) => {
         [teacherData],
     )
     const studentsStartedNotFinished = useMemo(() => {
-        return lesson?.student_names_started?.filter((sn) => !lesson.responses?.find((r) => r.student_name === sn && !r.analysis))
-    }, [lesson])
+        return lesson?.student_names_started?.filter((sn) => !lesson.responses?.find((r) => r.student_name === sn && r.analysis))
+    }, [lesson, lesson?.responses, lesson?.student_names_started])
+    // Poll for lesson responses
+    useEffect(() => {
+        if (lesson && !lesson.analysis_by_question_id) {
+            const interval = setInterval(() => {
+                callCloudFunction<LessonWithResponses[]>("getLessons", {}).then((_lessons) => {
+                    const newLesson = _lessons?.find(l => l.id === lesson.id)
+                    setLesson(newLesson)
+                    if (newLesson?.analysis_by_question_id) {
+                        clearInterval(interval)
+                    }
+                })
+            }, 2000)
+            return () => clearInterval(interval)
+        }
+    }, [lesson, callCloudFunction])
+
+    const [copiedLink, setCopiedLink] = useState(false)
 
     return <div className="light">
         <div className="seek-page">
@@ -144,18 +168,49 @@ const Lesson: FC<LessonProps> = ({}) => {
                                 </button>
                             </h2>
                             <p style={{ marginTop: "-8px" }}>Class: {lesson.class_name}</p>
+                            <p>
+                                <button
+                                    onClick={() => {
+                                        setCopiedLink(true)
+                                        navigator.clipboard.writeText(
+                                            `${import.meta.env.VITE_WEB_APP_URL}/${teacherData?.email_address}/${lessonId}`
+                                        )
+                                    }}
+                                    style={{
+                                        opacity: copiedLink ? "0.5" : "1",
+                                    }}>
+                                    <FontAwesomeIcon icon={faLink} />&nbsp;
+                                    {copiedLink ? "Link copied" : "Copy link to lesson"}
+                                </button>
+                            </p>
 
                             <hr />
 
-                            {studentsStartedNotFinished?.length
-                                ? <p>
-                                    <em>Still waiting for:</em>
-                                    {studentsStartedNotFinished?.join(", ")}
-                                </p>
-                                : <p>
-                                    <em>Waiting for the class to begin</em>
-                                </p>
-                            }
+                            {!lesson.responses?.length && <p>
+                                <em>Waiting for the class to begin</em>
+                            </p>}
+                            {!!lesson.responses?.length && !studentsStartedNotFinished?.length && <p>
+                                All responses are in!
+                            </p>}
+                            {!!studentsStartedNotFinished?.length && <p>
+                                <em>Still waiting for:</em>&nbsp;
+                                {studentsStartedNotFinished?.join(", ")}
+                            </p>}
+
+                            <div>
+                                {lesson.responses_locked
+                                    ? <span style={{ opacity: "0.5" }}>
+                                        <em>Responses locked</em>
+                                    </span>
+                                    : <button onClick={() => {
+                                        editLesson(lesson.id, {
+                                            ...lesson,
+                                            responses_locked: true,
+                                        })
+                                    }}>
+                                        Lock responses
+                                    </button>}
+                            </div>
 
                             <hr />
 
@@ -169,24 +224,24 @@ const Lesson: FC<LessonProps> = ({}) => {
                                     {q.media_content_urls?.map((url) => <img key={url} src={url} alt="media" />)}
                                 </div>}
 
-                                <hr />
+                                <hr style={{ marginBottom: "-15px" }} />
 
                                 <div id="student-responses">
-                                    {lesson.responses?.length
-                                        ? lesson.responses
-                                            .filter((r) => r.question_id === q.id)
-                                            .filter((r) => r.analysis)
-                                            .map((r) =>
-                                                <div className="student-response" key={r.student_name}>
-                                                    <p>{r.student_name} submitted:</p>
-                                                    <p>{r.analysis!.response_summary}</p>
-                                                    {r.response_image_base64 &&
-                                                        <img src={r.response_image_base64} alt={r.analysis!.response_summary}
-                                                            style={{ height: "100px" }}
-                                                        />}
-                                                </div>)
-                                        : <p><em>No responses yet</em></p>
-                                    }
+                                    {!lesson.analysis_by_question_id?.[q.id]?.responses_by_category
+                                        ? <p><em>No responses yet</em></p>
+                                        : <LessonQuestionResponses
+                                            question={q}
+                                            analysis={lesson.analysis_by_question_id![q.id]}
+                                            onAnalysisChange={(newAnalysis) => {
+                                                editLesson(lesson.id, {
+                                                    ...lesson,
+                                                    analysis_by_question_id: {
+                                                        ...lesson.analysis_by_question_id,
+                                                        [q.id]: newAnalysis,
+                                                    },
+                                                })
+                                            }}
+                                        />}
                                 </div>
                             </div>)}
                         </div>
