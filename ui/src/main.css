@@ -37,25 +37,28 @@ header {
 }
 
 .seek-page {
-	position: absolute;
-	top: 0;
-	left: 0;
+	position: relative;
 	width: 100%;
 	min-height: 100vh;
 	padding: 20px;
-	padding-top: 60px;
+	padding-top: 40px;
 	padding-bottom: 200px;
 }
 
 .page-content {
 	max-width: 800px;
 	min-width: 800px;
-	width: 800px;
 	margin: 0 auto;
 }
 
 section {
-	padding: 2rem 0;
+    margin: 3rem 0;
+	border-radius: 2rem;
+	padding: 0.5rem 0 2rem 0;
+}
+.content-gutters {
+	padding-left: 2.5rem;
+	padding-right: 2.5rem;
 }
 
 .light {
@@ -65,11 +68,14 @@ section {
 	* {
 		color: #222;
 	}
-	h2 {
-		color: #333;
+	h1, h2 {
+		color: #111;
 	}
 	h3 {
-		color: #444;
+		color: #222;
+	}
+	h4, h5 {
+		color: #333;
 	}
 	hr {
 		height: 1px;
@@ -77,14 +83,35 @@ section {
 		background: #e1e3e3;
 		font-size: 0;
 		border: 0;
+		margin-top: 20px;
+		margin-bottom: 20px;
 	}
 	button,
-	a {
-		color: #286ba9 !important;
+	a,
+	label {
+		font-weight: bold;
+		color: #111 !important;
+	}
+	.large-button {
+		color: #fafafa !important;
+	}
+	.inline-select {
+		background: #fff;
+		padding: 10px;
+		border-radius: 10px;
+		border: none;
+		border-right: 10px solid #fff;
+		font-weight: bold;
+
+		&:focus {
+			outline: none;
+		}
 	}
 	.large-button {
 		background: #286ba9;
-		color: #fafafa !important;
+	}
+	.faint-bg {
+		background: rgba(5,10,15,0.05);
 	}
 }
 .dark {
@@ -98,7 +125,10 @@ section {
 		color: #ddd;
 	}
 	h3 {
-		color: #aaa;
+		color: #ccc;
+	}
+	h4, h5 {
+		color: #bbb;
 	}
 	hr {
 		height: 1px;
@@ -108,12 +138,29 @@ section {
 		border: 0;
 	}
 	button,
-	a {
+	a,
+	label {
+		font-weight: bold;
 		color: #adc9e4 !important;
 	}
 	.large-button {
 		background: #adc9e4;
-		color: #286ba9 !important;
+		color: #111 !important;
+	}
+	.inline-select {
+		background: #333;
+		padding: 10px;
+		border-radius: 10px;
+		border: none;
+		border-right: 10px solid #333;
+		font-weight: bold;
+
+		&:focus {
+			outline: none;
+		}
+	}
+	.faint-bg {
+		background: rgba(250, 252, 255, 0.05);
 	}
 }
 
@@ -132,6 +179,8 @@ body {
 }
 button,
 input,
+select,
+option,
 p {
 	font-size: inherit;
 }
@@ -142,6 +191,11 @@ button {
 	font-weight: bold;
 	cursor: pointer;
 	font-size: 1.5rem;
+}
+button:disabled {
+	cursor: default;
+	pointer-events: none;
+	opacity: 0.5;
 }
 .large-button,
 .large-select,
@@ -155,12 +209,14 @@ button {
 h1,
 h2,
 h3,
-h4 {
+h4,
+h5 {
 	margin: 0;
 	display: flex;
 	flex-wrap: wrap;
 	margin-bottom: 2rem;
-	margin-top: 3rem;
+	margin-top: 2rem;
+	line-height: 1.5;
 
 	button {
 		margin-left: 2rem;
@@ -176,8 +232,15 @@ h2 {
 h3 {
 	font-size: 2rem;
 }
+h4 {
+	font-size: 1.8rem;
+}
+h5 {
+	font-size: 1.6rem;
+}
 
 input,
+select,
 textarea {
 	font-family: inherit;
 	font-size: 1.5rem;
@@ -224,10 +287,10 @@ ul {
 li {
 	padding: 0;
 	margin: 0;
-	padding-top: 1.5rem;
-	padding-bottom: 1.5rem;
+	padding-top: 1rem;
+	padding-bottom: 1rem;
 	margin-left: 2rem;
-	border-bottom: 1px solid;
+	/* border-bottom: 1px solid; */
 
 	h1,
 	h2,
@@ -237,12 +300,12 @@ li {
 		margin: 0;
 	}
 }
-.light li {
+/* .light li {
 	border-bottom-color: #e1e3e3;
 }
 .dark li {
 	border-bottom-color: #434c4d;
-}
+} */
 
 .supertitle {
 	display: inline-block;
@@ -251,3 +314,24 @@ li {
 	font-size: 0.7em;
 	margin-bottom: 0.5rem;
 }
+
+svg,
+svg path {
+	color: inherit !important;
+}
+
+.file-input-group {
+	display: inline-block;
+	padding: 10px;
+	margin-top: 10px;
+	background: #fff;
+	border-radius: 10px;
+	width: 100%;
+	text-align: center;
+}
+.file-list {
+	width: 100%;
+	margin-top: 0px;
+	margin-bottom: 5px;
+}
+

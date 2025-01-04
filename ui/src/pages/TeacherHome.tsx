@@ -1,14 +1,17 @@
-import { faTrash } from "@fortawesome/free-solid-svg-icons"
+import { faTrashCan } from "@fortawesome/free-regular-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from "firebase/auth"
 import { isEqual } from "lodash"
 import { FC, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { v4 as uuidv4 } from "uuid"
-import { AppCtx, Class, ClassWithStudents, LessonPlan, Student, Teacher, TeacherData } from "../data-model"
+import { AppCtx, Class, ClassWithStudents, LessonPlan, LessonPlanWithQuestions, LessonQuestion, Student, Teacher, TeacherData } from "../data-model"
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import LessonPlans from "../components/LessonPlans"
+import Lessons from "../components/Lessons"
 
 const TeacherHome: FC = () => {
 	const { user, firebaseApp, callCloudFunction } = useContext(AppCtx)!
-	const [teacherData, setTeacherData] = useState<TeacherData>()
+	const [teacherData, setTeacherData] = useState<TeacherData|null>()
 	const [firstTimeUser, setFirstTimeUser] = useState(false)
 	const teacherNameInputRef = useRef<HTMLInputElement>(null)
 	const [teacherEmail, setTeacherEmail] = useState("")
@@ -19,7 +22,7 @@ const TeacherHome: FC = () => {
 			setTeacherNickname(teacherData.nickname)
 		}
 	}, [teacherData])
-
+	// Sign up/in, teacher data CRUD
 	const createAccount = useCallback(async () => {
 		if (firebaseApp && teacherEmail && teacherPassword) {
 			try {
@@ -44,12 +47,23 @@ const TeacherHome: FC = () => {
 			}
 		}
 	}, [firebaseApp, teacherEmail, teacherPassword])
+
+	// CRUD
+	const [crudError, setCrudError] = useState<string>()
 	const fetchTeacherData = useCallback(async () => {
 		if (user) {
-			const newTeacherData = await callCloudFunction<TeacherData>("getTeacherData", {})
-			if (newTeacherData) {
-				setTeacherData(newTeacherData)
-				fetchLessonPlans()
+			setTeacherData(undefined)
+			try {
+				const newTeacherData = await callCloudFunction<TeacherData>("getTeacherData", {})
+				if (newTeacherData) {
+					setTeacherData(newTeacherData)
+					fetchLessonPlans()
+				} else {
+					setTeacherData(null)
+				}
+			} catch (e) {
+				setCrudError((e as Error).toString())
+				setTeacherData(null)
 			}
 		}
 	}, [user])
@@ -88,6 +102,7 @@ const TeacherHome: FC = () => {
 						await callCloudFunction("putTeacher", teacher)
 					}
 				} catch (e) {
+					setCrudError((e as Error).toString())
 					console.error(e)
 				}
 			}
@@ -97,8 +112,10 @@ const TeacherHome: FC = () => {
 	useEffect(() => {
 		fetchTeacherData()
 	}, [fetchTeacherData])
-	const [studentsCtrl, setStudentsCtrl] = useState<Record<string, Student>>({})
+
+	// Classes/students CRUD
 	const [classesCtrl, setClassesCtrl] = useState<Record<string, Class>>({})
+	const [studentsCtrl, setStudentsCtrl] = useState<Record<string, Student>>({})
 	useEffect(() => {
 		if (teacherData && teacherData.classes) {
 			setClassesCtrl(
@@ -184,6 +201,7 @@ const TeacherHome: FC = () => {
 						// fetchTeacherData()
 					}
 				} catch (e) {
+					setCrudError((e as Error).toString())
 					console.error(e)
 				}
 			}
@@ -203,6 +221,30 @@ const TeacherHome: FC = () => {
 			}
 		},
 		[user, teacherData, studentsCtrl],
+	)
+	const createClass = useCallback(
+		async () => {
+			if (user) {
+				const newClass: Class = {
+					id: uuidv4(),
+					name: "New class",
+					teacher_email: user.email!,
+					created_at: new Date().toISOString(),
+					updated_at: new Date().toISOString(),
+				}
+				// Update our local state
+				setTeacherData(
+					(td) =>
+						({
+							...td,
+							classes: [...(td?.classes ?? []), newClass],
+						}) as TeacherData,
+				)
+				// Then update the database
+				await callCloudFunction("putClass", newClass)
+			}
+		},
+		[user],
 	)
 	const editClass = useCallback(
 		async (id: string, classInput: Class) => {
@@ -233,6 +275,7 @@ const TeacherHome: FC = () => {
 						}
 					}
 				} catch (e) {
+					setCrudError((e as Error).toString())
 					console.error(e)
 				}
 			}
@@ -246,6 +289,7 @@ const TeacherHome: FC = () => {
 					await callCloudFunction("deleteClass", { id: classId })
 					fetchTeacherData()
 				} catch (e) {
+					setCrudError((e as Error).toString())
 					console.error(e)
 				}
 			}
@@ -256,7 +300,13 @@ const TeacherHome: FC = () => {
 	return (
 		<div className="light">
 			<div className="seek-page">
-				{user === undefined ? (
+				{crudError ? (
+					<>
+						<div className="page-content">
+							<p>Oops -- there was an error trying to load the page. Refresh the page to try again.</p>
+						</div>
+					</>
+				) : user === undefined ? (
 					<>
 						<div className="page-content">
 							<p>Loading...</p>
@@ -265,308 +315,277 @@ const TeacherHome: FC = () => {
 				) : user === null ? (
 					<div className="page-content">
 						{firstTimeUser ? (
-							<section>
-								<h1>Create your teacher account</h1>
-								<p>
-									<button onClick={() => setFirstTimeUser(false)}>I already have one</button>
-								</p>
-								<div role="form">
-									<div>
-										<label htmlFor="email">Email</label>
-										<input
-											type="email"
-											id="email"
-											name="email"
-											required
-											className="large-input"
-											value={teacherEmail}
-											onChange={(e) => setTeacherEmail(e.target.value)}
-										/>
-									</div>
+							<section className="faint-bg">
+								<div className="content-gutters">
+									<h1>Create your teacher account</h1>
+									<p>
+										<button onClick={() => setFirstTimeUser(false)}>I already have one</button>
+									</p>
+									<div role="form">
+										<div>
+											<label htmlFor="email">Email</label>
+											<input
+												type="email"
+												id="email"
+												name="email"
+												required
+												className="large-input"
+												value={teacherEmail}
+												onChange={(e) => setTeacherEmail(e.target.value)}
+											/>
+										</div>
 
-									<div>
-										<label htmlFor="password">Password</label>
-										<input
-											type="password"
-											id="password"
-											name="password"
-											required
-											className="large-input"
-											value={teacherPassword}
-											onChange={(e) => setTeacherPassword(e.target.value)}
-										/>
-									</div>
+										<div>
+											<label htmlFor="password">Password</label>
+											<input
+												type="password"
+												id="password"
+												name="password"
+												required
+												className="large-input"
+												value={teacherPassword}
+												onChange={(e) => setTeacherPassword(e.target.value)}
+											/>
+										</div>
 
-									<button
-										className="large-button"
-										type="submit"
-										onClick={() => {
-											createAccount().then(() => {
-												putTeacherData({
-													email_address: teacherEmail,
+										<button
+											className="large-button"
+											type="submit"
+											onClick={() => {
+												createAccount().then(() => {
+													putTeacherData({
+														email_address: teacherEmail,
+													})
 												})
-											})
-										}}
-									>
-										Create Account
-									</button>
+											}}
+										>
+											Create Account
+										</button>
+									</div>
 								</div>
 							</section>
 						) : (
-							<section>
-								<h1>Sign into your teacher account</h1>
-								<p>
-									<button onClick={() => setFirstTimeUser(true)}>I don't have an account</button>
-								</p>
-								<div role="form">
-									<div>
-										<label htmlFor="email">Email</label>
-										<input
-											type="email"
-											id="email"
-											name="email"
-											required
-											className="large-input"
-											value={teacherEmail}
-											onChange={(e) => setTeacherEmail(e.target.value)}
-										/>
-									</div>
+							<section className="faint-bg">
+								<div className="content-gutters">
+									<h1>Sign into your teacher account</h1>
+									<p>
+										<button onClick={() => setFirstTimeUser(true)}>I don't have an account</button>
+									</p>
+									<div role="form">
+										<div>
+											<label htmlFor="email">Email</label>
+											<input
+												type="email"
+												id="email"
+												name="email"
+												required
+												className="large-input"
+												value={teacherEmail}
+												onChange={(e) => setTeacherEmail(e.target.value)}
+											/>
+										</div>
 
-									<div>
-										<label htmlFor="password">Password</label>
-										<input
-											type="password"
-											id="password"
-											name="password"
-											required
-											className="large-input"
-											value={teacherPassword}
-											onChange={(e) => setTeacherPassword(e.target.value)}
-										/>
-									</div>
+										<div>
+											<label htmlFor="password">Password</label>
+											<input
+												type="password"
+												id="password"
+												name="password"
+												required
+												className="large-input"
+												value={teacherPassword}
+												onChange={(e) => setTeacherPassword(e.target.value)}
+											/>
+										</div>
 
-									<button
-										className="large-button"
-										type="submit"
-										onClick={() => {
-											signIn().then(() => {
-												fetchTeacherData()
-											})
-										}}
-									>
-										Log in
-									</button>
+										<button
+											className="large-button"
+											type="submit"
+											onClick={() => {
+												signIn().then(() => {
+													fetchTeacherData()
+												})
+											}}
+										>
+											Log in
+										</button>
+									</div>
 								</div>
 							</section>
 						)}
 					</div>
 				) : (
 					<div className="page-content">
-						<section>
-							<h2>Set up your profile</h2>
-
-							<div style={{ marginBottom: "10px" }}>
-								<label htmlFor="teacher-profile-name">Your name</label>
-								<div style={{ fontSize: "2.4rem" }}>
-									<input
-										ref={teacherNameInputRef}
-										id="teacher-profile-name"
-										className="inline-input"
-										placeholder="What do students call you?"
-										style={{
-											width: "100%",
-											maxWidth: "400px",
-											marginTop: "5px",
-										}}
-										value={teacherNickname}
-										onChange={(e) => setTeacherNickname(e.target.value)}
-										onKeyDown={(e) => {
-											if (e.key === "Enter") {
-												teacherNameInputRef.current?.blur()
-											}
-										}}
-										onBlur={() => {
-											setTimeout(() => {
-												putTeacherData({
-													nickname: teacherNickname,
-												})
-											})
-										}}
-									/>
-								</div>
-							</div>
-						</section>
-
-						{!teacherData ? (
+						{teacherData === undefined ? (
 							<>
 								<p>Loading...</p>
 							</>
 						) : (
 							<>
-								<section>
-									<h2 style={{ display: "flex", justifyContent: "space-between" }}>
-										Lessons
-										<button>+ Begin lesson</button>
-									</h2>
-
-									<ul>
-										<li>
-											<h3>
-												<a href="/">Untitled lesson</a>
-											</h3>
-										</li>
-									</ul>
-								</section>
-
-								<section>
-									<h2 style={{ display: "flex", justifyContent: "space-between" }}>
-										Lesson plans
-										<button>+ New lesson plan</button>
-									</h2>
-
-									<ul>
-										<li>
-											<h3>
-												<a href="/">Untitled lesson plan</a>
-											</h3>
-										</li>
-									</ul>
-								</section>
-
-								<section>
-									<h2 style={{ display: "flex", justifyContent: "space-between" }}>
-										Classes and students
-										<button
-											onClick={async () => {
-												const newClass: Class = {
-													id: uuidv4(),
-													name: "New class",
-													teacher_email: user.email!,
-													created_at: new Date().toISOString(),
-													updated_at: new Date().toISOString(),
-												}
-												// Update our local state
-												setTeacherData(
-													(td) =>
-														({
-															...td,
-															classes: [...(td?.classes ?? []), newClass],
-														}) as TeacherData,
-												)
-												// Then update the database
-												await callCloudFunction("putClass", newClass)
-											}}
-										>
-											+ Add a class
-										</button>
-									</h2>
-
-									{teacherData.classes?.map((c) => classesCtrl[c.id] && (
-										<div key={c.id}>
-											<h3 style={{ display: "flex", justifyContent: "space-between" }}>
+								<section className="faint-bg">
+									<div className="content-gutters">
+										<h2>Set up your profile</h2>
+									</div>
+									<hr />
+									<div className="content-gutters">
+										<div style={{ marginBottom: "10px" }}>
+											<label htmlFor="teacher-profile-name">Your name</label>
+											<div style={{ fontSize: "2.4rem" }}>
 												<input
+													ref={teacherNameInputRef}
+													id="teacher-profile-name"
 													className="inline-input"
-													style={{ flexGrow: 1 }}
-													value={classesCtrl[c.id].name}
-													onChange={(e) => {
-														setClassesCtrl((cc) => ({
-															...cc,
-															[c.id]: {
-																...cc[c.id],
-																name: e.target.value,
-															},
-														}))
+													placeholder="What do students call you?"
+													style={{
+														width: "100%",
+														maxWidth: "400px",
+														marginTop: "5px",
 													}}
+													value={teacherNickname}
+													onChange={(e) => setTeacherNickname(e.target.value)}
 													onKeyDown={(e) => {
 														if (e.key === "Enter") {
-															e.currentTarget.blur()
+															teacherNameInputRef.current?.blur()
 														}
 													}}
 													onBlur={() => {
 														setTimeout(() => {
-															editClass(c.id, classesCtrl[c.id])
+															putTeacherData({
+																nickname: teacherNickname,
+															})
 														})
 													}}
 												/>
-												<button
-													onClick={() => {
-														if (window.confirm(`Are you sure you want to delete ${c.name}?`)) {
-															deleteClass(c.id)
-														}
-													}}
-												>
-													<FontAwesomeIcon icon={faTrash} />
-												</button>
-											</h3>
-											<hr />
-											<ul id="students">
-												{c.students?.map(
-													(s) =>
-														studentsCtrl[s.id] && (
-															<li
-																key={s.id}
-																style={{
-																	display: "flex",
-																	justifyContent: "space-between",
-																	gap: "20px",
-																}}
-															>
-																<input
-																	className="inline-input"
-																	style={{ flexGrow: 1 }}
-																	value={studentsCtrl[s.id].nickname}
-																	onChange={(e) => {
-																		setStudentsCtrl((sc) => ({
-																			...sc,
-																			[s.id]: {
-																				...sc[s.id],
-																				nickname: e.target.value,
-																			},
-																		}))
-																	}}
-																	onKeyDown={(e) => {
-																		if (e.key === "Enter") {
-																			e.currentTarget.blur()
-																		}
-																	}}
-																	onBlur={() => {
-																		setTimeout(() => {
-																			editStudent(s.id, studentsCtrl[s.id])
-																		})
-																	}}
-																/>
-																<button
-																	onClick={() => {
-																		deleteStudent(s.id, c.id)
-																	}}
-																>
-																	<FontAwesomeIcon icon={faTrash} />
-																</button>
-															</li>
-														),
-												)}
-											</ul>
-											<div style={{ marginTop: "20px", marginLeft: "20px" }}>
-												<button
-													onClick={() => {
-														createStudent(c)
-														setTimeout(() => {
-															const newInput = document.querySelector(
-																"#students li:last-child input",
-															) as HTMLInputElement
-															console.log("got new input?", newInput)
-															newInput?.focus()
-															setTimeout(() => {
-																newInput?.select()
-															})
-														}, 100)
-													}}
-												>
-													+ Add a student
-												</button>
 											</div>
 										</div>
-									))}
+									</div>
+								</section>
+								{teacherData && <section className="faint-bg">
+									<Lessons
+										teacherData={teacherData}
+										setTeacherData={setTeacherData}
+										refreshTeacherData={fetchTeacherData}
+									/>
+								</section>}
+
+								{teacherData && <section className="faint-bg">
+									<LessonPlans
+										teacherData={teacherData}
+										setTeacherData={setTeacherData}
+										refreshTeacherData={fetchTeacherData}
+									/>
+								</section>}
+
+								<section className="faint-bg">
+									<div className="content-gutters">
+										<h2 style={{ display: "flex", justifyContent: "space-between" }}>
+											Classes and students
+											<button
+												onClick={() => createClass()}
+											>
+												+ Add a class
+											</button>
+										</h2>
+									</div>
+									<hr />
+									<div className="content-gutters">
+										{teacherData?.classes?.map((c) => classesCtrl[c.id] && (
+											<div key={c.id}>
+												<h3 style={{ display: "flex", justifyContent: "space-between", marginTop: "35px" }}>
+													<input
+														className="inline-input"
+														style={{ flexGrow: 1 }}
+														value={classesCtrl[c.id].name}
+														onChange={(e) => {
+															setClassesCtrl((cc) => ({
+																...cc,
+																[c.id]: {
+																	...cc[c.id],
+																	name: e.target.value,
+																},
+															}))
+														}}
+														onKeyDown={(e) => {
+															if (e.key === "Enter") {
+																e.currentTarget.blur()
+															}
+														}}
+														onBlur={() => {
+															setTimeout(() => {
+																editClass(c.id, classesCtrl[c.id])
+															})
+														}}
+													/>
+													<button
+														onClick={() => {
+															if (window.confirm(`Are you sure you want to delete ${c.name}?`)) {
+																deleteClass(c.id)
+															}
+														}}
+													>
+														<FontAwesomeIcon icon={faTrashCan} />
+													</button>
+												</h3>
+												<hr />
+												<ul id="students">
+													{c.students?.map(
+														(s) =>
+															studentsCtrl[s.id] && (
+																<li
+																	key={s.id}
+																	style={{
+																		display: "flex",
+																		justifyContent: "space-between",
+																		gap: "20px",
+																	}}
+																>
+																	<input
+																		className="inline-input"
+																		style={{ flexGrow: 1 }}
+																		value={studentsCtrl[s.id].nickname}
+																		onChange={(e) => {
+																			setStudentsCtrl((sc) => ({
+																				...sc,
+																				[s.id]: {
+																					...sc[s.id],
+																					nickname: e.target.value,
+																				},
+																			}))
+																		}}
+																		onKeyDown={(e) => {
+																			if (e.key === "Enter") {
+																				e.currentTarget.blur()
+																			}
+																		}}
+																		onBlur={() => {
+																			setTimeout(() => {
+																				editStudent(s.id, studentsCtrl[s.id])
+																			})
+																		}}
+																	/>
+																	<button
+																		onClick={() => {
+																			deleteStudent(s.id, c.id)
+																		}}
+																	>
+																		<FontAwesomeIcon icon={faTrashCan} />
+																	</button>
+																</li>
+															),
+													)}
+												</ul>
+												<div style={{ marginTop: "10px", marginLeft: "20px" }}>
+													<button
+														onClick={() => {
+															createStudent(c)
+														}}
+													>
+														+ Add a student
+													</button>
+												</div>
+											</div>
+										))}
+									</div>
 								</section>
 							</>
 						)}
