@@ -56,6 +56,7 @@ class LessonQuestion:
     # specific_topic: str
     created_at: str
     updated_at: str
+    categorization_guidance: Optional[str] = None
     media_content_urls: Optional[List[str]] = None
     context_material_urls: Optional[List[str]] = None
 

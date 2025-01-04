@@ -4,10 +4,9 @@ import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } f
 import { isEqual } from "lodash"
 import { FC, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { v4 as uuidv4 } from "uuid"
-import { AppCtx, Class, ClassWithStudents, LessonPlan, LessonPlanWithQuestions, LessonQuestion, Student, Teacher, TeacherData } from "../data-model"
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import LessonPlans from "../components/LessonPlans"
 import Lessons from "../components/Lessons"
+import { AppCtx, Class, ClassWithStudents, LessonPlan, Student, Teacher, TeacherData } from "../data-model"
 
 const TeacherHome: FC = () => {
 	const { user, firebaseApp, callCloudFunction } = useContext(AppCtx)!
@@ -22,19 +21,50 @@ const TeacherHome: FC = () => {
 			setTeacherNickname(teacherData.nickname)
 		}
 	}, [teacherData])
+	const [submittingSignUp, setSubmittingSignUp] = useState(false)
 	// Sign up/in, teacher data CRUD
-	const createAccount = useCallback(async () => {
+	const createAccount = useCallback(() => new Promise<void>((resolve, reject) => {
 		if (firebaseApp && teacherEmail && teacherPassword) {
-			try {
-				const result = await createUserWithEmailAndPassword(getAuth(firebaseApp), teacherEmail, teacherPassword)
+			setSubmittingSignUp(true)
+			createUserWithEmailAndPassword(getAuth(firebaseApp), teacherEmail, teacherPassword).then(result => {
 				console.log(`Signed up as ${result.user.email}!`)
-			} catch (error) {
+				if (result.user) {
+					const teacher = {
+						id: uuidv4(),
+						nickname: "",
+						user_id: result.user?.uid, // Back end ignores this, reads it from JWT
+						email_address: result.user?.email ?? "", // Back end ignores this, reads it from JWT
+						created_at: new Date().toISOString(),
+						updated_at: new Date().toISOString(),
+					} as Teacher
+					setTeacherData((td) => ({
+						...td,
+						...teacher,
+					}) as TeacherData)
+					result.user.getIdToken().then(jwt => {
+						// Make sure the new user has propagated across the backend
+						setTimeout(() => {
+							callCloudFunction("putTeacher", teacher, `Bearer ${jwt}`).then(() =>
+								setTimeout(() => {
+									fetchTeacherData().then(() => resolve())
+								})
+							).catch((e) => {
+								setCrudError((e as Error).toString())
+								console.error(e)
+								reject()
+							})
+						}, 1000)
+					})
+				}
+			}).catch((error) => {
 				console.error("Failed sign up:", error)
 				// Try to sign in instead
-				await signIn()
-			}
+				signIn()
+			}).finally(() => {
+				setSubmittingSignUp(false)
+			})
 		}
-	}, [firebaseApp, teacherEmail, teacherPassword])
+	}), [firebaseApp, teacherEmail, teacherPassword])
 	const signIn = useCallback(async () => {
 		if (firebaseApp && teacherEmail && teacherPassword) {
 			try {
@@ -53,7 +83,7 @@ const TeacherHome: FC = () => {
 	const fetchTeacherData = useCallback(async () => {
 		if (user) {
 			setTeacherData(undefined)
-			try {
+			const attempt = async () => {
 				const newTeacherData = await callCloudFunction<TeacherData>("getTeacherData", {})
 				if (newTeacherData) {
 					setTeacherData(newTeacherData)
@@ -61,9 +91,21 @@ const TeacherHome: FC = () => {
 				} else {
 					setTeacherData(null)
 				}
-			} catch (e) {
-				setCrudError((e as Error).toString())
-				setTeacherData(null)
+			}
+			let attemptsRemaining = 4
+			while (attemptsRemaining > 0) {
+				try {
+					await attempt()
+					break
+				} catch (e) {
+					attemptsRemaining--
+					if (attemptsRemaining === 0) {
+						setCrudError((e as Error).toString())
+					}
+					await new Promise((resolve) => setTimeout(resolve, 1000))
+					// setCrudError((e as Error).toString())
+					// setTeacherData(null)
+				}
 			}
 		}
 	}, [user])
@@ -82,11 +124,7 @@ const TeacherHome: FC = () => {
 					delete _teacherData.lesson_plans
 					delete _teacherData.lessons
 					const teacher = {
-						id: uuidv4(),
-						user_id: user?.uid,
-						email_address: user?.email ?? "",
 						nickname: teacherInput.nickname ?? "",
-						created_at: new Date().toISOString(),
 						..._teacherData,
 						...teacherInput,
 					} as Teacher
@@ -95,9 +133,6 @@ const TeacherHome: FC = () => {
 						setTeacherData((td) => ({
 							...td,
 							...teacher,
-							classes: td?.classes,
-							lesson_plans: td?.lesson_plans,
-							lessons: td?.lessons,
 						}) as TeacherData)
 						await callCloudFunction("putTeacher", teacher)
 					}
@@ -107,7 +142,7 @@ const TeacherHome: FC = () => {
 				}
 			}
 		},
-		[user, teacherData],
+		[user, teacherData, callCloudFunction],
 	)
 	useEffect(() => {
 		fetchTeacherData()
@@ -158,7 +193,7 @@ const TeacherHome: FC = () => {
 					...cls,
 					students: [...(cls.students ?? []), newStudent],
 				}
-				const newClasses = [...teacherData.classes]
+				const newClasses = [...(teacherData.classes ?? [])]
 				newClasses[newClasses.findIndex((c) => c.id === cls.id)] = newClass
 				setTeacherData(
 					(td) =>
@@ -171,7 +206,7 @@ const TeacherHome: FC = () => {
 				await callCloudFunction("putStudent", newStudent)
 			}
 		},
-		[user, teacherData],
+		[user, teacherData, callCloudFunction],
 	)
 	const editStudent = useCallback(
 		async (id: string, studentInput: Student) => {
@@ -184,7 +219,7 @@ const TeacherHome: FC = () => {
 						const newStudents = [...cls.students]
 						newStudents[newStudents.findIndex((s) => s.id === id)] = studentInput
 						const newClass: ClassWithStudents = { ...cls, students: newStudents }
-						const newClasses = [...teacherData.classes]
+						const newClasses = [...(teacherData.classes ?? [])]
 						newClasses[newClasses.findIndex((c) => c.id === cls.id)] = newClass
 						setTeacherData(
 							(td) =>
@@ -206,7 +241,7 @@ const TeacherHome: FC = () => {
 				}
 			}
 		},
-		[user, teacherData],
+		[user, teacherData, callCloudFunction],
 	)
 	const deleteStudent = useCallback(
 		async (studentId: string, classId: string) => {
@@ -220,7 +255,7 @@ const TeacherHome: FC = () => {
 				})
 			}
 		},
-		[user, teacherData, studentsCtrl],
+		[user, teacherData, studentsCtrl, callCloudFunction],
 	)
 	const createClass = useCallback(
 		async () => {
@@ -244,7 +279,7 @@ const TeacherHome: FC = () => {
 				await callCloudFunction("putClass", newClass)
 			}
 		},
-		[user],
+		[user, callCloudFunction],
 	)
 	const editClass = useCallback(
 		async (id: string, classInput: Class) => {
@@ -257,7 +292,7 @@ const TeacherHome: FC = () => {
 						const newClassWithStudents = { ...oldClassWithStudents, ...classInput }
 						if (!isEqual(oldClassPlain, newClassPlain)) {
 							// Update our local state
-							const newClasses = [...teacherData.classes]
+							const newClasses = [...(teacherData.classes ?? [])]
 							newClasses[newClasses.findIndex((c) => c.id === newClassWithStudents.id)] = newClassWithStudents
 							setTeacherData(
 								(td) =>
@@ -280,7 +315,7 @@ const TeacherHome: FC = () => {
 				}
 			}
 		},
-		[user, teacherData],
+		[user, teacherData, callCloudFunction],
 	)
 	const deleteClass = useCallback(
 		async (classId: string) => {
@@ -294,7 +329,7 @@ const TeacherHome: FC = () => {
 				}
 			}
 		},
-		[user],
+		[user, fetchTeacherData, callCloudFunction],
 	)
 
 	return (
@@ -332,6 +367,11 @@ const TeacherHome: FC = () => {
 												className="large-input"
 												value={teacherEmail}
 												onChange={(e) => setTeacherEmail(e.target.value)}
+												onKeyDown={(e) => {
+													if (e.key === "Enter") {
+														createAccount()
+													}
+												}}
 											/>
 										</div>
 
@@ -345,21 +385,26 @@ const TeacherHome: FC = () => {
 												className="large-input"
 												value={teacherPassword}
 												onChange={(e) => setTeacherPassword(e.target.value)}
+												onKeyDown={(e) => {
+													if (e.key === "Enter") {
+														createAccount()
+													}
+												}}
 											/>
 										</div>
 
 										<button
 											className="large-button"
 											type="submit"
+											disabled={submittingSignUp}
 											onClick={() => {
-												createAccount().then(() => {
-													putTeacherData({
-														email_address: teacherEmail,
-													})
-												})
+												createAccount()
 											}}
 										>
-											Create Account
+											{submittingSignUp
+												? <span style={{ opacity: "0.5" }}>Creating Account...</span>
+												: <span>Create Account</span>
+											}
 										</button>
 									</div>
 								</div>
@@ -382,6 +427,13 @@ const TeacherHome: FC = () => {
 												className="large-input"
 												value={teacherEmail}
 												onChange={(e) => setTeacherEmail(e.target.value)}
+												onKeyDown={(e) => {
+													if (e.key === "Enter") {
+														signIn().then(() => {
+															fetchTeacherData()
+														})
+													}
+												}}
 											/>
 										</div>
 
@@ -395,6 +447,13 @@ const TeacherHome: FC = () => {
 												className="large-input"
 												value={teacherPassword}
 												onChange={(e) => setTeacherPassword(e.target.value)}
+												onKeyDown={(e) => {
+													if (e.key === "Enter") {
+														signIn().then(() => {
+															fetchTeacherData()
+														})
+													}
+												}}
 											/>
 										</div>
 
@@ -526,7 +585,7 @@ const TeacherHome: FC = () => {
 														<FontAwesomeIcon icon={faTrashCan} />
 													</button>
 												</h3>
-												<hr />
+												<hr style={{ marginBottom: "5px" }} />
 												<ul id="students">
 													{c.students?.map(
 														(s) =>

@@ -6,12 +6,11 @@ import { faGripLines } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 export interface LessonQuestionResponsesProps {
-    question: LessonQuestion
     analysis: LessonQuestionAnalysis
     onAnalysisChange: (newAnalysis: LessonQuestionAnalysis) => void
 }
 
-const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ question, analysis, onAnalysisChange }) => {
+const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, onAnalysisChange }) => {
     const responsesByCatName = useMemo(() => analysis.responses_by_category, [analysis.responses_by_category])
     const [responsesByCatNameCtrl, setResponsesByCatNameCtrl] = useState<{ catName: string, responses: LessonResponse[] }[]>()
     useEffect(() => {

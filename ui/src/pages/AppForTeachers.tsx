@@ -1,10 +1,17 @@
 import { getAuth } from "firebase/auth"
-import { FC, useContext } from "react"
-import { Outlet } from "react-router-dom"
+import { FC, useContext, useLayoutEffect } from "react"
+import { Outlet, useLocation, useNavigate } from "react-router-dom"
 import { AppCtx } from "../data-model"
 
 const AppForTeachers: FC = () => {
 	const { user, firebaseApp } = useContext(AppCtx)!
+	const location = useLocation()
+	const navigate = useNavigate()
+
+	// Scroll to the top whenever the route changes
+	useLayoutEffect(() => {
+		setTimeout(() => window.scrollTo(0, 0), 500)
+	}, [location.pathname])
 
 	return (
 		<div className="light">
@@ -12,14 +19,12 @@ const AppForTeachers: FC = () => {
 				<div className="page-content">
 					<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 						<button
-							onClick={async () => {
-								window.location.href = "https://seek-poe-dev.web.app/for-teachers";
+							onClick={() => {
+								navigate(`/for-teachers`)
 							}}
 							style={{
-								fontSize: "1.2rem",
 								background: "none",
 								border: "none",
-								cursor: "pointer",
 								display: "flex",
 								alignItems: "center",
 								padding: 0,

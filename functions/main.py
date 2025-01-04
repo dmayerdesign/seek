@@ -34,34 +34,36 @@ def getTeacherData(request: https_fn.CallableRequest):
     user: auth.UserRecord = auth.get_user(request.auth.uid)
     if user is not None and user.email is not None:
         teacherMatches = list(db.collection('teachers').where(filter=FieldFilter('email_address', '==', user.email)).stream())
+        print("teacher matches", len(teacherMatches))
         if len(teacherMatches) == 1:
             teacher = TeacherData(**teacherMatches[0].to_dict())
             if teacher is None or teacher.id is None:
                 raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.NOT_FOUND, message="not found")
-
-            # Look up their classes
             teacher_id = teacher.id
             teacher_ref = db.collection('teachers').document(teacher_id)
+
+            # Look up their classes
             classes_coll: CollectionReference = teacher_ref.collection('classes')
-            classes = list(classes_coll.stream())
-            if len(classes) > 0:
-                classes: List[Class] = [Class(**classes[i].to_dict()) for i in range(len(classes))]
-                teacher.classes = classes
-                for cls in classes:
+            class_docs = list(classes_coll.stream())
+            teacher.classes = []
+            if len(class_docs) > 0:
+                teacher.classes = [Class(**class_docs[i].to_dict()) for i in range(len(class_docs))]
+                teacher.classes.sort(key=lambda c: c.created_at)
+                for cls in teacher.classes:
                     students_ref: CollectionReference = classes_coll.document(cls.id).collection('students')
                     students = list(students_ref.stream())
+                    cls.students = students
                     if len(students) > 0:
-                        for i in range(len(students)):
-                            print(students[i].to_dict())
                         cls.students = [Student(**students[i].to_dict()) for i in range(len(students))]
                         # Sort students by name
                         cls.students.sort(key=lambda student: student.created_at)
 
             # Look up their lesson plans
             lesson_plans_coll: CollectionReference = teacher_ref.collection('lesson_plans')
-            lesson_plans = list(lesson_plans_coll.stream())
-            if len(lesson_plans) > 0:
-                teacher.lesson_plans = [LessonPlan(**lesson_plans[i].to_dict()) for i in range(len(lesson_plans))]
+            lesson_plan_docs = list(lesson_plans_coll.stream())
+            teacher.lesson_plans = []
+            if len(lesson_plan_docs) > 0:
+                teacher.lesson_plans = [LessonPlan(**lesson_plan_docs[i].to_dict()) for i in range(len(lesson_plan_docs))]
                 for plan in teacher.lesson_plans:
                     questions_coll: CollectionReference = lesson_plans_coll.document(plan.id).collection('questions')
                     questions = list(questions_coll.stream())
@@ -74,9 +76,10 @@ def getTeacherData(request: https_fn.CallableRequest):
 
             # Look up their lessons
             lessons_coll: CollectionReference = teacher_ref.collection('lessons')
-            lessons = list(lessons_coll.where(filter=FieldFilter('deleted', '!=', True)).stream())
-            if len(lessons) > 0:
-                teacher.lessons = [Lesson(**lessons[i].to_dict()) for i in range(len(lessons))]
+            lesson_docs = list(lessons_coll.where(filter=FieldFilter('deleted', '!=', True)).stream())
+            teacher.lessons = []
+            if len(lesson_docs) > 0:
+                teacher.lessons = [Lesson(**lesson_docs[i].to_dict()) for i in range(len(lesson_docs))]
                 for lesson in teacher.lessons:
                     responses_coll: CollectionReference = lessons_coll.document(lesson.id).collection('responses')
                     responses = list(responses_coll.stream())
@@ -126,8 +129,6 @@ def _getLessonPlans(
                 questions_coll: CollectionReference = lesson_plans_coll.document(plan.id).collection('questions')
                 question_docs = list(questions_coll.stream())
                 if len(question_docs) > 0:
-                    for i in range(len(question_docs)):
-                        print("got doc?", question_docs[i].exists)
                     plan.questions = [
                         LessonQuestion(
                             **question_docs[i].to_dict()) for i in range(len(question_docs)
@@ -180,8 +181,6 @@ def _getLessons(
                     responses_coll: CollectionReference = lessons_coll.document(plan.id).collection('responses')
                     responses = list(responses_coll.stream())
                     if len(responses) > 0:
-                        for i in range(len(responses)):
-                            print(responses[i].to_dict())
                         plan.responses = [LessonResponse(**responses[i].to_dict()) for i in range(len(responses))]
                         # Sort by created_at
                         plan.responses.sort(key=lambda r: r.created_at)
@@ -195,8 +194,6 @@ def _getLessons(
                 students_ref: CollectionReference = classes_coll.document(lesson.class_data.id).collection('students')
                 students = list(students_ref.stream())
                 if len(students) > 0:
-                    for i in range(len(students)):
-                        print(students[i].to_dict())
                     lesson.class_data.students = [Student(**students[i].to_dict()) for i in range(len(students))]
                     # Sort students by name
                     lesson.class_data.students.sort(key=lambda student: student.created_at)
@@ -205,13 +202,22 @@ def _getLessons(
 
 ######### Commands
 
+
 @https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
 def putTeacher(request: https_fn.CallableRequest):
     if request.auth is not None and request.auth.uid is not None:
-        teacher_data: Teacher = Teacher(**request.data)
-        if teacher_data is not None and teacher_data.id is not None:
-            db.collection('teachers').document(teacher_data.id).set(document_data=teacher_data.__dict__, merge=True)
-            return "success"
+        emails_allowed_str: str = db.collection('admin_configs').document("current").get().to_dict().get("emails_allowed")
+        emails_allowed = emails_allowed_str.split(',')
+        if request.auth.token.get('email') in emails_allowed:
+            teacher_data: Teacher = Teacher(**request.data)
+            teacher_data.user_id = request.auth.uid
+            teacher_data.email_address = request.auth.token.get('email')
+            if teacher_data.id is not None:
+                db.collection('teachers').document(teacher_data.id).set(
+                    document_data=teacher_data.__dict__, merge=True
+                )
+                return "success"
+        raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
     raise https_fn.HttpsError(code=401, message="login required")
 
 
@@ -386,7 +392,6 @@ def putLesson(request: https_fn.CallableRequest):
                 teacher_id = teacher.id
                 teacher_ref = db.collection('teachers').document(teacher_id)
                 new_lesson = Lesson(**request.data)
-                new_lesson.deleted = False
 
                 # Don't save nested data!
                 new_lesson.responses = None
@@ -398,7 +403,13 @@ def putLesson(request: https_fn.CallableRequest):
                     lesson_ref: DocumentReference = teacher_ref.collection('lessons').document(lesson_id)
                     old_lesson_exists = lesson_ref.get().exists
                     old_lesson = Lesson(**lesson_ref.get().to_dict()) if old_lesson_exists else None
-                    # Save the lesson now that we have the old data in memory
+
+                    # Supporting soft-delete: if the lesson didn't exist before, set deleted to False
+                    # (Enforcing non-nullness on this field makes queries easier)
+                    if old_lesson is None:
+                        new_lesson.deleted = False
+
+                    # Save the lesson, now that we have the old data in memory
                     lesson_ref.set(document_data=new_lesson.__dict__, merge=True)
                     print("lesson saved")
 
@@ -432,6 +443,7 @@ def putLesson(request: https_fn.CallableRequest):
                         lesson_questions = [LessonQuestion(**lesson_questions[i].to_dict()) for i in range(len(lesson_questions))]
                         analysis_by_question_id: dict[str, Dict[str, Any]] = {}
                         for question in lesson_questions:
+                            responses_to_question = [response for response in responses if response.question_id == question.id]
                             llm_messages = []
                             llm_messages.append({
                                 "role": "user",
@@ -479,12 +491,24 @@ def putLesson(request: https_fn.CallableRequest):
                                     "content": ctx_materials_message_content,
                                 })
 
+                            # Add categorization_guidance if any
+                            if question.categorization_guidance is not None:
+                                llm_messages.append({
+                                    "role": "user",
+                                    "content": [{
+                                        "type": "text",
+                                        "text": "I expect students' responses to fall into the following categories, "+
+                                            "though this list is not necessarily exhaustive:\n"+
+                                            question.categorization_guidance,
+                                    }],
+                                })
+
                             # Add the student responses
                             lesson_responses_message_content = [{
                                 "type": "text",
                                 "text": "And here are my students' responses:", # TODO: Add anti-prompt-injection language?
                             }]
-                            for resp in responses:
+                            for resp in responses_to_question:
                                 lesson_responses_message_content.append({
                                     "type": "text",
                                     "text": f"{resp.student_name} answered: {resp.analysis.get('response_summary')}",
@@ -502,6 +526,10 @@ def putLesson(request: https_fn.CallableRequest):
                                     sort the students' responses into categories. The categories will be used to organize
                                     discussion groups that ideally lead to each student reworking their own hypothesis to reach
                                     a deep understanding of the explanation provided in their textbook.
+                                                  
+                                    There should be at least 2 categories, and no more than 5, so while answers might vary a lot,
+                                    do your best to categorize in a way that will help the students draw connections between each
+                                    other's explanations.
                                     
                                     Your next response should be output in JSON format, as a JSON array structured as follows:
                                     Each element must be an object with 2 fields, "category" and "student_name", each containing a string.
@@ -525,7 +553,7 @@ def putLesson(request: https_fn.CallableRequest):
 
                             # Map the analysis to the LessonQuestionAnalysis object
                             responses_by_student_name: dict[str, LessonResponse] = {}
-                            for resp in responses:
+                            for resp in responses_to_question:
                                 responses_by_student_name[resp.student_name] = resp
                             responses_by_category: dict[str, list[LessonResponse]] = {}
                             for analysis_raw in analyses_raw:
@@ -683,7 +711,8 @@ async def analyze_lesson_response(
             "text": dedent(f"""
                 Your response should be a summary of this drawing that carefully considers how {lesson_resp_data.student_name}'s drawing is attempting to answer the question I asked the class.
                 If you see any text in it, include the exact text in your summary.
-                The summary should be comprehensive but as concise as possible.
+                Give the student the benefit of the doubt, but don't be afraid to analyze with a critical eye.
+                Your summary should be as brief as possible while being comprehensive.
             """),
         })
         llm_messages.append({

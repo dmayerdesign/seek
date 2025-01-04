@@ -12,9 +12,9 @@ export interface Teacher {
 }
 
 export interface TeacherData extends Teacher {
-	classes: ClassWithStudents[]
-	lesson_plans: LessonPlanWithQuestions[]
-	lessons: LessonWithResponses[]
+	classes?: ClassWithStudents[]
+	lesson_plans?: LessonPlanWithQuestions[]
+	lessons?: LessonWithResponses[]
 }
 
 export interface Class {
@@ -55,12 +55,13 @@ export interface LessonQuestion {
 	lesson_plan_id: string
 	teacher_email: string
 	body_text: string
-	// field_of_study: string
-	// specific_topic: string
-	media_content_urls?: string[]
-	context_material_urls?: string[]
 	created_at: string
 	updated_at: string
+	// field_of_study: string
+	// specific_topic: string
+	categorization_guidance?: string
+	media_content_urls?: string[]
+	context_material_urls?: string[]
 }
 
 export interface Lesson {
@@ -79,7 +80,6 @@ export interface Lesson {
 	student_names_started?: string[]
 	class_data?: ClassWithStudents
 	lesson_plan?: LessonPlanWithQuestions
-	responses?: LessonResponse[]
 	analysis_by_question_id?: Record<string, LessonQuestionAnalysis>
 }
 
@@ -117,6 +117,6 @@ export const AppCtx = createContext<AppContext | null>(null)
 export interface AppContext {
 	firebaseApp: FirebaseApp
 	user: User | null | undefined
-	callCloudFunction: <ReturnType = void>(endpoint: string, data?: any) => Promise<ReturnType | null>
+	callCloudFunction: <ReturnType = void>(endpoint: string, data?: any, authorization?: string) => Promise<ReturnType | null>
 	uploadFile: (file: File, destFolder: string) => Promise<string>
 }

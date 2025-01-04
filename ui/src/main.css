@@ -92,8 +92,10 @@ section {
 		font-weight: bold;
 		color: #111 !important;
 	}
-	.large-button {
+	.large-button,
+	.large-button:disabled {
 		color: #fafafa !important;
+		background: #286ba9;
 	}
 	.inline-select {
 		background: #fff;
@@ -106,9 +108,6 @@ section {
 		&:focus {
 			outline: none;
 		}
-	}
-	.large-button {
-		background: #286ba9;
 	}
 	.faint-bg {
 		background: rgba(5,10,15,0.05);
@@ -213,6 +212,7 @@ button:disabled {
 	padding: 10px 10px;
 	border-radius: 1.5rem;
 	color: #000000;
+	background: #fff;
 }
 h1,
 h2,
@@ -225,6 +225,10 @@ h5 {
 	margin-bottom: 2rem;
 	margin-top: 2rem;
 	line-height: 1.5;
+
+	.supertitle {
+		flex-basis: 100%;
+	}
 
 	button {
 		margin-left: 2rem;
@@ -341,5 +345,8 @@ svg path {
 	width: 100%;
 	margin-top: 0px;
 	margin-bottom: 5px;
+}
+button * {
+	color: inherit !important;
 }
 

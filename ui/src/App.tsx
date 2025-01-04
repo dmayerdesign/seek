@@ -32,11 +32,12 @@ const App: React.FC = () => {
 	const callCloudFunction = useCallback(async function<ReturnType = void>(
 		endpoint: string,
 		data?: any,
+		authorization?: string,
 	): Promise<ReturnType | null> {
 		try {
 			const headers: HeadersInit = {
 				"Content-Type": "application/json",
-				"Authorization": `Bearer ${await user?.getIdToken()}`,
+				"Authorization": authorization ?? `Bearer ${await user?.getIdToken()}`,
 			}
 			const response = await fetch(getApiUrl(endpoint), {
 				method: "POST",
