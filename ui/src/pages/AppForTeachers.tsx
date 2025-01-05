@@ -12,8 +12,8 @@ const AppForTeachers: FC = () => {
 				<div className="page-content">
 					<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 						<button
-							onClick={() => {
-								window.location.href = "https://seek.com";
+							onClick={async () => {
+								window.location.href = "https://seek-poe-dev.web.app/for-teachers";
 							}}
 							style={{
 								fontSize: "1.2rem",
