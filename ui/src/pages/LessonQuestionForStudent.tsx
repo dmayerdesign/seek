@@ -78,7 +78,7 @@ const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, s
             ? <textarea
                 id="typed-input"
                 name="typed-input"
-                className="large-input"
+                className="response-input"
                 placeholder="Type your response here..."
                 disabled={submitting || submitted}
                 value={typedInput}
