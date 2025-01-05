@@ -11,12 +11,29 @@ const AppForTeachers: FC = () => {
 			<header>
 				<div className="page-content">
 					<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-						<img
-							src="/seek-logo-dark.png"
-							className="seek-logo"
-							style={{ height: "18px", width: "auto", textShadow: "none" }}
-							alt="SEEK"
-						/>
+						{/* Replace the logo with a button linking to seek.com */}
+						<a
+							href="https://seek-poe-dev.web.app/for-teachers/"
+							style={{
+								textDecoration: "none",
+								display: "flex",
+								alignItems: "center",
+							}}
+						>
+							<button
+								style={{
+									background: "none",
+									border: "none",
+									cursor: "pointer",
+									padding: 0,
+								}}
+							>
+								<img
+									src="/seek-logo-dark.png"
+									alt="SEEK"
+									style={{ height: "18px", width: "auto", textShadow: "none" }}
+								/>
+							</button>
 						{user && (
 							<button
 								onClick={async () => {
