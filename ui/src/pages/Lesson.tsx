@@ -2,7 +2,7 @@ import { createRef, FC, ForwardRefRenderFunction, MutableRefObject, useCallback,
 import { AppCtx, LessonPlanWithQuestions, LessonWithResponses, TeacherData } from "../data-model";
 import { useNavigate, useParams } from "react-router-dom";
 import { parseISO } from "date-fns"
-import { isEqual } from "lodash";
+import { groupBy, isEqual, set, uniq } from "lodash";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import { faChevronLeft, faLink } from "@fortawesome/free-solid-svg-icons";
@@ -48,7 +48,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                 setLesson(_lessons?.find(l => l.id === lessonId))
             })
         }
-    }, [lessonId, teacherData])
+    }, [lessonId, teacherData, lesson])
     useEffect(() => {
         if (lesson) {
             callCloudFunction<LessonPlanWithQuestions[]>("getLessonPlans", {}).then((_lessonPlans) => {
@@ -60,17 +60,17 @@ const Lesson: FC<LessonProps> = ({}) => {
         async (id: string, lessonInput: LessonWithResponses) => {
             if (teacherData) {
                 try {
-                    const oldLesson = teacherData?.lessons.find((lp) => lp.id === id)
+                    const oldLesson = teacherData?.lessons?.find((l) => l.id === id)
                     if (oldLesson && !isEqual(oldLesson, lessonInput)) {
                         // Update our local state
-                        let newLessons = [...teacherData.lessons]
+                        let newLessons = [...(teacherData.lessons ?? [])]
                         const newLesson = {
                             ...oldLesson,
                             ...lessonInput,
                         }
-                        newLessons[newLessons.findIndex((lp) => lp.id === id)] = newLesson
+                        newLessons[newLessons.findIndex((l) => l.id === id)] = newLesson
                         if (lessonInput.deleted) {
-                            newLessons = newLessons.filter((lp) => lp.id !== id)
+                            newLessons = newLessons.filter((l) => l.id !== id)
                         }
                         setLesson(newLesson)
                         setTeacherData(
@@ -92,18 +92,40 @@ const Lesson: FC<LessonProps> = ({}) => {
                 }
             }
         },
-        [teacherData],
+        [teacherData, callCloudFunction],
     )
-    const studentsStartedNotFinished = useMemo(() => {
-        return lesson?.student_names_started?.filter((sn) => !lesson.responses?.find((r) => r.student_name === sn && r.analysis))
-    }, [lesson, lesson?.responses, lesson?.student_names_started])
+    const studentNamesFinished = useMemo(() => {
+        if (lesson?.responses) {
+            const grouped = Object.values(groupBy(lesson.responses.map(r => r.student_name), (n) => n))
+            return uniq(grouped.filter(g => g.length === lessonPlan?.questions.length).flatMap(g => g))
+        }
+    }, [lessonPlan?.questions, lesson?.responses])
+    const studentNamesNotFinished = useMemo(() => {
+        if (teacherData?.classes) {
+            const thisClass = teacherData.classes.find(c => c.id === lesson?.class_id)
+            return thisClass?.students?.filter(s => !studentNamesFinished?.includes(s.nickname))
+                .map(s => s.nickname)
+        }
+        return []
+    }, [teacherData?.classes, studentNamesFinished])
+    const studentNamesStartedNotFinished = useMemo(() => {
+        return lesson?.student_names_started?.filter((sn) => !studentNamesFinished?.includes(sn))
+    }, [lesson?.student_names_started, studentNamesFinished])
     // Poll for lesson responses
     useEffect(() => {
         if (lesson && !lesson.analysis_by_question_id) {
             const interval = setInterval(() => {
                 callCloudFunction<LessonWithResponses[]>("getLessons", {}).then((_lessons) => {
                     const newLesson = _lessons?.find(l => l.id === lesson.id)
-                    setLesson(newLesson)
+                    setLesson(l => {
+                        if (l && newLesson?.responses) {
+                            l.responses = [...newLesson.responses]
+                        }
+                        if (l && newLesson?.analysis_by_question_id) {
+                            l.analysis_by_question_id = newLesson.analysis_by_question_id
+                        }
+                        return l
+                    })
                     if (newLesson?.analysis_by_question_id) {
                         clearInterval(interval)
                     }
@@ -112,7 +134,7 @@ const Lesson: FC<LessonProps> = ({}) => {
             return () => clearInterval(interval)
         }
     }, [lesson, callCloudFunction])
-
+    const [deleting, setDeleting] = useState(false)
     const [copiedLink, setCopiedLink] = useState(false)
 
     return <div className="light">
@@ -155,15 +177,17 @@ const Lesson: FC<LessonProps> = ({}) => {
                                 <button
                                     onClick={() => {
                                         if (window.confirm(`Are you sure you want to delete ${lesson.lesson_name}?`)) {
+                                            setDeleting(true)
                                             editLesson(lesson.id, {
                                                 ...lesson,
                                                 deleted: true,
-                                            }).finally(() => {
+                                            }).then(() => {
                                                 navigate("/")
                                             })
                                         }
                                     }}
                                 >
+                                    {deleting ? <em>Deleting...&nbsp;</em> : ""}
                                     <FontAwesomeIcon icon={faTrashCan} />
                                 </button>
                             </h2>
@@ -189,12 +213,16 @@ const Lesson: FC<LessonProps> = ({}) => {
                             {!lesson.responses?.length && <p>
                                 <em>Waiting for the class to begin</em>
                             </p>}
-                            {!!lesson.responses?.length && !studentsStartedNotFinished?.length && <p>
-                                All responses are in!
+                            {!!studentNamesFinished?.length && <p>
+                                Got responses from {studentNamesFinished?.join(", ")}
                             </p>}
-                            {!!studentsStartedNotFinished?.length && <p>
+                            {!!studentNamesNotFinished?.length && !studentNamesStartedNotFinished?.length && <p>
+                                <em>Did not get responses from</em>&nbsp;
+                                {studentNamesNotFinished?.join(", ")}
+                            </p>}
+                            {!!studentNamesStartedNotFinished?.length && <p>
                                 <em>Still waiting for:</em>&nbsp;
-                                {studentsStartedNotFinished?.join(", ")}
+                                {studentNamesStartedNotFinished?.join(", ")}
                             </p>}
 
                             <div>
@@ -214,23 +242,33 @@ const Lesson: FC<LessonProps> = ({}) => {
 
                             <hr />
 
-                            {lessonPlan?.questions.map((q) => <div key={q.id}>
-                                <h3>
-                                    <small>Question 1:</small>
+                            {lessonPlan?.questions.map((q, i) => <div key={q.id}>
+                                <h3 style={{ marginTop: "35px" }}>
+                                    <small className="supertitle">Question {i+1}:</small>
                                     {q.body_text}
                                 </h3>
+
                                 {!!q.media_content_urls?.length &&
                                 <div style={{ display: "flex", gap: "10px", height: "150px" }}>
                                     {q.media_content_urls?.map((url) => <img key={url} src={url} alt="media" />)}
                                 </div>}
 
-                                <hr style={{ marginBottom: "-15px" }} />
+                                <hr />
 
                                 <div id="student-responses">
-                                    {!lesson.analysis_by_question_id?.[q.id]?.responses_by_category
-                                        ? <p><em>No responses yet</em></p>
-                                        : <LessonQuestionResponses
-                                            question={q}
+                                    {!lesson.responses?.length && <>
+                                        <p style={{ marginBottom: "30px" }}><em>No responses yet</em></p>
+                                    </>}
+
+                                    {lesson.responses_locked &&
+                                    !!lesson.responses?.length &&
+                                    !lesson.analysis_by_question_id?.[q.id]?.responses_by_category && <>
+                                        <p style={{ marginBottom: "30px" }}><em>Analyzing...</em></p>
+                                    </>}
+
+                                    <div style={{ marginTop: "-15px" }}>
+                                        {lesson.analysis_by_question_id?.[q.id]?.responses_by_category &&
+                                        <LessonQuestionResponses
                                             analysis={lesson.analysis_by_question_id![q.id]}
                                             onAnalysisChange={(newAnalysis) => {
                                                 editLesson(lesson.id, {
@@ -242,6 +280,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                                                 })
                                             }}
                                         />}
+                                    </div>
                                 </div>
                             </div>)}
                         </div>

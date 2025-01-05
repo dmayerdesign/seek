@@ -16,10 +16,13 @@ export interface LessonQuestionForStudentProps {
 const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, student, question, submitResponse }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
-    const responseAlreadySubmitted = useMemo(() => lesson.responses?.find(r => r.student_id === student.id), [lesson, student])
+    const responseAlreadySubmitted = useMemo(
+        () => lesson.responses?.filter(r => r.question_id === question.id && r.student_id === student.id)?.[0],
+        [lesson.responses, student],
+    )
     const [responseIsDrawn, setResponseIsDrawn] = useState(false)
     const [submitting, setSubmitting] = useState(false)
-    const [submitted, setSubmitted] = useState(!!responseAlreadySubmitted)
+    const [submitted, setSubmitted] = useState(false)
 	const [typedInput, setTypedInput] = useState(responseAlreadySubmitted?.response_text ?? "")
 	const submit = useCallback(() => {
         setSubmitting(true)

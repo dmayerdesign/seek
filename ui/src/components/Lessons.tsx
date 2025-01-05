@@ -64,16 +64,16 @@ const Lessons: FC<LessonsProps> = ({ teacherData, setTeacherData, refreshTeacher
 				return newLesson
 			}
 		},
-		[user],
+		[user, callCloudFunction],
 	)
 	const [newLessonSelectedClassId, setNewLessonSelectedClassId] = useState<string>()
 	const [newLessonSelectedPlanId, setNewLessonSelectedPlanId] = useState<string>()
 	const newLessonSelectedClass = useMemo(
-		() => teacherData?.classes.find(c => c.id === newLessonSelectedClassId),
+		() => teacherData?.classes?.find(c => c.id === newLessonSelectedClassId),
 		[teacherData, newLessonSelectedClassId],
 	)
 	const newLessonSelectedPlan = useMemo(
-		() => teacherData?.lesson_plans.find(p => p.id === newLessonSelectedPlanId),
+		() => teacherData?.lesson_plans?.find(p => p.id === newLessonSelectedPlanId),
 		[teacherData, newLessonSelectedPlanId],
 	)
 
@@ -91,7 +91,7 @@ const Lessons: FC<LessonsProps> = ({ teacherData, setTeacherData, refreshTeacher
 						onChange={(e) => setNewLessonSelectedPlanId(e.target.value)}
 						style={{ maxWidth: "400px" }}>
 						<option value={undefined}>Select a lesson plan</option>
-						{teacherData?.lesson_plans.map(p => (
+						{teacherData?.lesson_plans?.map(p => (
 							<option key={p.id} value={p.id}>{p.title}</option>
 						))}
 					</select>
@@ -103,7 +103,7 @@ const Lessons: FC<LessonsProps> = ({ teacherData, setTeacherData, refreshTeacher
 						onChange={(e) => setNewLessonSelectedClassId(e.target.value)}
 						style={{ maxWidth: "200px" }}>
 						<option value="">Select a class</option>
-						{teacherData?.classes.map(c => (
+						{teacherData?.classes?.map(c => (
 							<option key={c.id} value={c.id}>{c.name}</option>
 						))}
 					</select>}

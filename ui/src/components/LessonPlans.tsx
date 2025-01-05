@@ -52,19 +52,13 @@ const LessonPlans: FC<LessonPlansProps> = ({ teacherData, setTeacherData, refres
 					created_at: new Date().toISOString(),
 					updated_at: new Date().toISOString(),
 				}
-				// Update our local state
-				setTeacherData(
-					(td) =>
-						({
-							...td,
-							lesson_plans: [...(td?.lesson_plans ?? []), newLessonPlan],
-						}) as TeacherData,
-				)
 				// Then update the database
 				await callCloudFunction("putLessonPlan", newLessonPlan)
+				navigate(`/for-teachers/lesson-plans/${newLessonPlan.id}`)
+				refreshTeacherData()
 			}
 		},
-		[user],
+		[user, callCloudFunction],
 	)
 
     return <>

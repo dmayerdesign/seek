@@ -32,7 +32,7 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 				setTeacherData(null)
 			}
 		}
-	}, [user])
+	}, [user, callCloudFunction])
 	useEffect(() => {
 		fetchTeacherData()
 	}, [fetchTeacherData])
@@ -55,14 +55,14 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 		if (lessonPlan) {
 			setLessonPlanCtrl({ ...lessonPlan })
 			setLessonQuestionsCtrl(
-				lessonPlan.questions
-					.reduce(
-						(acc, lq) => {
-							acc[lq.id] = lq
-							return acc
-						},
-						{} as Record<string, LessonQuestion>,
-					)
+				lessonPlan.questions?.reduce(
+					(acc, lq) => {
+						acc[lq.id] = lq
+						return acc
+					},
+					{} as Record<string, LessonQuestion>,
+				)
+				?? {}
 			)
 		}
 	}, [lessonPlan])
@@ -70,11 +70,14 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 		async (id: string, lessonPlanInput: LessonPlanWithQuestions) => {
 			if (user) {
 				try {
-					const oldLessonPlan = teacherData?.lesson_plans.find((lp) => lp.id === id)
+					const oldLessonPlan = teacherData?.lesson_plans?.find((lp) => lp.id === id)
 					if (teacherData && oldLessonPlan && !isEqual(oldLessonPlan, lessonPlanInput)) {
 						// Update our local state
-						const newLessonPlans = [...teacherData.lesson_plans]
-						newLessonPlans[newLessonPlans.findIndex((lp) => lp.id === id)] = lessonPlanInput
+						const newLessonPlans = [...(teacherData.lesson_plans ?? [])]
+						newLessonPlans[newLessonPlans.findIndex((lp) => lp.id === id)] = {
+							...lessonPlanInput
+						}
+						setLessonPlan(newLessonPlans.find((lp) => lp.id === id))
 						setTeacherData(
 							(td) =>
 								({
@@ -87,27 +90,27 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 							...lessonPlanInput,
 							updated_at: new Date().toISOString(),
 						})
-						// refreshTeacherData()
 					}
 				} catch (e) {
 					console.error(e)
 				}
 			}
 		},
-		[user, teacherData],
+		[user, teacherData, callCloudFunction],
 	)
 	const deleteLessonPlan = useCallback(
 		async (lessonPlanId: string) => {
 			if (user) {
 				try {
-					await callCloudFunction("deleteLessonPlan", { id: lessonPlanId })
-					navigate("/")
+					callCloudFunction("deleteLessonPlan", { id: lessonPlanId }).then(() => {
+						navigate("/")
+					})
 				} catch (e) {
 					console.error(e)
 				}
 			}
 		},
-		[user],
+		[user, callCloudFunction],
 	)
 	const createLessonQuestion = useCallback(
 		async (lessonPlan: LessonPlanWithQuestions) => {
@@ -128,8 +131,9 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 					...lessonPlan,
 					questions: newQuestions,
 				}
-				const newLessonPlans = [...teacherData.lesson_plans]
+				const newLessonPlans = [...(teacherData.lesson_plans ?? [])]
 				newLessonPlans[newLessonPlans.findIndex((lp) => lp.id === lessonPlan.id)] = newLessonPlan
+				setLessonPlan(newLessonPlan)
 				setTeacherData(
 					(td) =>
 						({
@@ -141,19 +145,19 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 				await callCloudFunction("putLessonQuestion", newLessonQuestion)
 			}
 		},
-		[user, teacherData],
+		[user, teacherData, callCloudFunction],
 	)
 	const editLessonQuestion = useCallback(
 		async (lessonPlanId: string, lessonQuestionId: string, lessonQuestionInput: LessonQuestion) => {
 			if (user) {
 				try {
 					const oldLessonQuestion = teacherData?.lesson_plans
-						.filter(lp => lp.id === lessonPlanId)
+						?.filter(lp => lp.id === lessonPlanId)
 						.flatMap((lp) => lp.questions ?? [])
 						.find((lq) => lq.id === lessonQuestionId)
 					if (teacherData && oldLessonQuestion && !isEqual(oldLessonQuestion, lessonQuestionInput)) {
 						// Update our local state
-						const newLessonPlans = teacherData.lesson_plans.map((lp) => lp.id == lessonPlanId ? ({
+						const newLessonPlans = teacherData.lesson_plans?.map((lp) => lp.id == lessonPlanId ? ({
 							...lp,
 							questions: lp.questions
 								.map((lq) => (lq.id === lessonQuestionId
@@ -161,16 +165,15 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 										...lq,
 										...lessonQuestionInput,
 										media_content_urls: [
-											...(lq.media_content_urls ?? []),
 											...(lessonQuestionInput.media_content_urls ?? []),
 										],
 										context_material_urls: [
-											...(lq.context_material_urls ?? []),
 											...(lessonQuestionInput.context_material_urls ?? []),
 										],
 									}
 									: lq)),
 						}) : lp)
+						setLessonPlan(newLessonPlans?.find((lp) => lp.id === lessonPlanId))
 						setTeacherData(
 							(td) =>
 								({
@@ -185,29 +188,30 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 							lesson_plan_id: lessonPlanId,
 							updated_at: new Date().toISOString(),
 						})
-						// refreshTeacherData()
 					}
 				} catch (e) {
 					console.error(e)
 				}
 			}
 		},
-		[user, teacherData],
+		[user, teacherData, callCloudFunction],
 	)
 	const deleteLessonQuestion = useCallback(
 		async (lessonPlanId: string, lessonQuestionId: string) => {
 			if (user) {
 				try {
 					const oldLessonQuestion = teacherData?.lesson_plans
-						.filter(lp => lp.id === lessonPlanId)
+						?.filter(lp => lp.id === lessonPlanId)
 						.flatMap((lp) => lp.questions ?? [])
 						.find((lq) => lq.id === lessonQuestionId)
 					if (teacherData && oldLessonQuestion) {
 						// Update our local state
-						const newLessonPlans = teacherData.lesson_plans.map((lp) => lp.id == lessonPlanId ? ({
+						const newLessonPlans = teacherData.lesson_plans?.map((lp) => lp.id == lessonPlanId ? ({
 							...lp,
 							questions: lp.questions.filter((lq) => lq.id !== lessonQuestionId),
 						}) : lp)
+						const newLessonPlan = newLessonPlans?.find((lp) => lp.id === lessonPlanId)
+						setLessonPlan(newLessonPlan)
 						setTeacherData(
 							(td) =>
 								({
@@ -220,14 +224,13 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 							id: lessonQuestionId,
 							lesson_plan_id: lessonPlanId,
 						})
-						// refreshTeacherData()
 					}
 				} catch (e) {
 					console.error(e)
 				}
 			}
 		},
-		[user, teacherData],
+		[user, teacherData, callCloudFunction],
 	)
 
     return <div className="light">
@@ -278,13 +281,15 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 										<FontAwesomeIcon icon={faTrashCan} />
 									</button>
 								</h2>
-								<hr />
 								<ul id="lesson-plan-questions">
-									{lessonPlan.questions?.map(
+									{Object.values(lessonQuestionsCtrl)?.map(
 										(q) =>
 											lessonQuestionsCtrl[q.id] && (
 												<li key={q.id}
-													style={{ padding: "0" }}>
+													style={{ padding: "0", marginTop: "30px", marginBottom: "50px" }}>
+													
+													<hr style={{ marginBottom: "30px" }} />
+
 													<h4 style={{
 														display: "flex",
 														justifyContent: "space-between",
@@ -326,6 +331,39 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 															<FontAwesomeIcon icon={faTrashCan} />
 														</button>
 													</h4>
+													<br />
+													<div>
+														<p>
+															If you want, enter below one or more categories of response
+															that you expect to see, separated by commas or new lines.
+														</p>
+														<br />
+														<textarea
+															placeholder="Suggested categories for student responses (optional)"
+															className="inline-input"
+															style={{ width: "100%" }}
+															value={lessonQuestionsCtrl[q.id].categorization_guidance}
+															onChange={(e) => {
+																setLessonQuestionsCtrl((lqc) => ({
+																	...lqc,
+																	[q.id]: {
+																		...lqc[q.id],
+																		categorization_guidance: e.target.value,
+																	},
+																}))
+															}}
+															onKeyDown={(e) => {
+																if (e.key === "Enter") {
+																	e.currentTarget.blur()
+																}
+															}}
+															onBlur={() => {
+																setTimeout(() => {
+																	editLessonQuestion(lessonPlan.id, q.id, lessonQuestionsCtrl[q.id])
+																})
+															}}
+														/>
+													</div>
 													<br />
 													<div style={{ marginLeft: "25px" }}>
 														<div>
