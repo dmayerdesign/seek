@@ -72,9 +72,10 @@ class Lesson:
     class_name: str
     teacher_name: str
     teacher_email: str
-    responses_locked: bool
     created_at: str
     updated_at: str
+    responses_locked: Optional[bool] = None # Deprecated
+    questions_locked: Optional[List[str]] = None
     deleted: Optional[bool] = None
     student_names_started: Optional[List[str]] = None
     class_data: Optional['Class'] = None
@@ -100,7 +101,9 @@ class LessonResponse:
     created_at: str
     updated_at: str
     response_image_base64: Optional[str] = None
+    response_image_url: Optional[str] = None
     response_text: Optional[str] = None
+    response_has_drawing: Optional[bool] = None
     analysis: Optional['LessonResponseAnalysis'] = None
 
 

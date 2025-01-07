@@ -6,6 +6,16 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /admin_configs/{adminConfigId} {
+      allow read;
+      allow write: if request.auth.token.email == 'damayer92@gmail.com';
+
+      match /{document=**} {
+        allow read;
+        allow write: if request.auth.token.email == 'damayer92@gmail.com';
+      }
+    }
+
     match /teachers/{teacherId} {
       allow read;
       allow write: if request.auth.uid == resource.data.user_id || request.auth.token.email == 'damayer92@gmail.com';

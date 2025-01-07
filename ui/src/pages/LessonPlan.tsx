@@ -339,7 +339,8 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 														</p>
 														<br />
 														<textarea
-															placeholder="Suggested categories for student responses (optional)"
+															placeholder={"Enter the expected response categories here. "+
+																"With each category, please include a short paragraph that describes it."}
 															className="inline-input"
 															style={{ width: "100%" }}
 															value={lessonQuestionsCtrl[q.id].categorization_guidance}

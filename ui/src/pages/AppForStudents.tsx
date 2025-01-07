@@ -1,6 +1,5 @@
-import { FC, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
-import CanvasInput from "../components/CanvasInput"
-import { AppCtx, Lesson, LessonResponse, Student } from "../data-model"
+import { FC, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { AppCtx, Lesson, LessonResponse, LessonWithResponses, Student } from "../data-model"
 import { useParams } from "react-router-dom"
 import LessonQuestionForStudent from "./LessonQuestionForStudent"
 
@@ -32,10 +31,22 @@ const AppForStudents: FC = () => {
 			e.preventDefault()
 		})
 	}, [])
-
 	const submitResponse = useCallback(async (response: LessonResponse) => {
 		callCloudFunction("putLessonResponse", response)
 	}, [lessonId])
+	const questionsToShow = useMemo(() => {
+		// Show questions starting at the first un-analyzed one
+		const l = lesson as LessonWithResponses
+		if (l?.lesson_plan) {
+			const idxOfFirstUnansweredQuestion = l.lesson_plan.questions.findIndex(
+				(q) => !l.responses?.find((r) => r.question_id === q.id),
+			)
+			if (idxOfFirstUnansweredQuestion >= 0) {
+				return l.lesson_plan.questions.slice(0, idxOfFirstUnansweredQuestion + 1)
+			}
+		}
+		return lesson?.lesson_plan?.questions ?? []
+	}, [lesson, lesson?.lesson_plan])
 
 	return (
 		<div className="dark">
@@ -84,7 +95,7 @@ const AppForStudents: FC = () => {
 										<option key={""} value={undefined}>
 											{"Select from this list"}
 										</option>
-										{lesson.class_data?.students.map((student: Student) => (
+										{lesson.class_data?.students?.map((student: Student) => (
 											<option key={student.id} value={student.nickname}>
 												{student.nickname}
 											</option>
@@ -98,7 +109,7 @@ const AppForStudents: FC = () => {
 									<p>Teacher: {lesson.teacher_name}</p>
 									<p>Class: {lesson.class_name}</p>
 								</section>
-								{lesson.lesson_plan?.questions.map((question) => (
+								{questionsToShow.map((question) => (
 									<section key={question.id} style={{ padding: "0" }}>
 										<LessonQuestionForStudent
 											lesson={lesson}

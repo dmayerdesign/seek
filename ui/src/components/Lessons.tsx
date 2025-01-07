@@ -43,7 +43,7 @@ const Lessons: FC<LessonsProps> = ({ teacherData, setTeacherData, refreshTeacher
 					lesson_plan_id: lesson_plan.id,
 					lesson_plan_name: lesson_plan.title,
 					teacher_email: user.email!,
-					responses_locked: false,
+					questions_locked: [],
 					teacher_name: teacherData.nickname,
 					created_at: new Date().toISOString(),
 					updated_at: new Date().toISOString(),

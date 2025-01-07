@@ -4,7 +4,12 @@ service firebase.storage {
   match /b/{bucket}/o {
     match /{teacherId}/{allPaths=**} {
       allow read;
-      allow write: if request.auth.uid == firestore.get(/databases/(default)/documents/teachers/$(teacherId)).data.user_id && request.resource.size < 10 * 1024 * 1024; // 10MiB max file size;
+      allow write: if (teacherId == "default-teacher" || request.auth.uid == firestore.get(/databases/(default)/documents/teachers/$(teacherId)).data.user_id) && request.resource.size < 10 * 1024 * 1024; // 10MiB max file size;
+    }
+
+    match /default-teacher/{allPaths=**} {
+      allow read;
+      allow write;
     }
 
     match /{teacherId}/lesson-responses/{allPaths=**} {
