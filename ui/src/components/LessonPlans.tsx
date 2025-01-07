@@ -10,7 +10,7 @@ export interface LessonPlansProps {
 }
 
 const LessonPlans: FC<LessonPlansProps> = ({ teacherData, setTeacherData, refreshTeacherData }) => {
-    const { user, callCloudFunction, uploadFile } = useContext(AppCtx)!
+    const { user, callCloudFunction } = useContext(AppCtx)!
 	const navigate = useNavigate()
 
     // Lesson plans CRUD

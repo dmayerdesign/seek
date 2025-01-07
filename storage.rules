@@ -7,6 +7,11 @@ service firebase.storage {
       allow write: if request.auth.uid == firestore.get(/databases/(default)/documents/teachers/$(teacherId)).data.user_id && request.resource.size < 10 * 1024 * 1024; // 10MiB max file size;
     }
 
+    match /default-teacher/{allPaths=**} {
+      allow read;
+      allow write;
+    }
+
     match /{teacherId}/lesson-responses/{allPaths=**} {
       allow read;
       allow write: if request.resource.size < 5 * 1024 * 1024; // 5MiB max file size

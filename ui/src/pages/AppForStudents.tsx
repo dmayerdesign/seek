@@ -1,5 +1,5 @@
 import { FC, useCallback, useContext, useEffect, useMemo, useState } from "react"
-import { AppCtx, Lesson, LessonResponse, Student } from "../data-model"
+import { AppCtx, Lesson, LessonResponse, LessonWithResponses, Student } from "../data-model"
 import { useParams } from "react-router-dom"
 import LessonQuestionForStudent from "./LessonQuestionForStudent"
 
@@ -36,12 +36,13 @@ const AppForStudents: FC = () => {
 	}, [lessonId])
 	const questionsToShow = useMemo(() => {
 		// Show questions starting at the first un-analyzed one
-		if (lesson?.lesson_plan) {
-			const idxOfFirstUnansweredQuestion = lesson.lesson_plan.questions.findIndex(
-				(q) => !lesson.analysis_by_question_id?.[q.id],
+		const l = lesson as LessonWithResponses
+		if (l?.lesson_plan) {
+			const idxOfFirstUnansweredQuestion = l.lesson_plan.questions.findIndex(
+				(q) => !l.responses?.find((r) => r.question_id === q.id),
 			)
 			if (idxOfFirstUnansweredQuestion >= 0) {
-				return lesson.lesson_plan.questions.slice(0, idxOfFirstUnansweredQuestion + 2)
+				return l.lesson_plan.questions.slice(0, idxOfFirstUnansweredQuestion + 1)
 			}
 		}
 		return lesson?.lesson_plan?.questions ?? []

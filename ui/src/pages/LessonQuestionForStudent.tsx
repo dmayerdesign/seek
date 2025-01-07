@@ -1,9 +1,10 @@
-import { FC, useCallback, useMemo, useRef, useState } from "react";
-import { LessonQuestion, LessonResponse, LessonWithResponses, Student } from "../data-model";
+import { FC, useCallback, useContext, useMemo, useRef, useState } from "react";
+import { AppCtx, LessonQuestion, LessonResponse, LessonWithResponses, Student } from "../data-model";
 import CanvasInput from "../components/CanvasInput";
 import { v4 } from "uuid";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHandPointer, faKeyboard } from "@fortawesome/free-regular-svg-icons";
+import { urlToFile } from "../utils";
 
 
 export interface LessonQuestionForStudentProps {
@@ -14,6 +15,7 @@ export interface LessonQuestionForStudentProps {
 }
 
 const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, student, question, submitResponse }) => {
+    const { uploadFile } = useContext(AppCtx)!
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const responseAlreadySubmitted = useMemo(
@@ -25,13 +27,16 @@ const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, s
     const [submitting, setSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
 	const [typedInput, setTypedInput] = useState(responseAlreadySubmitted?.response_text ?? "")
-	const submit = useCallback(() => {
+	const submit = useCallback(async () => {
         setSubmitting(true)
 
         let canvasDataURL: string | undefined = undefined
+        let canvasUploadedURL: string | undefined = undefined
 		if (canvasRef.current) {
 			canvasDataURL = canvasRef.current.toDataURL()
 			console.log(canvasDataURL)
+            const file = await urlToFile(canvasDataURL!, `drawing-${Date.now()}.png`)
+            canvasUploadedURL = await uploadFile(file, `${lesson.teacher_email}/student-responses`)
 		}
 
         submitResponse({
@@ -42,7 +47,7 @@ const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, s
             student_id: student.id,
             student_name: student.nickname,
             response_text: typedInput,
-            response_image_base64: canvasDataURL,
+            response_image_url: canvasUploadedURL,
             response_has_drawing: responseHasDrawing,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),

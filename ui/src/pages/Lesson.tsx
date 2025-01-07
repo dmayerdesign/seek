@@ -88,6 +88,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                             updated_at: new Date().toISOString(),
                         })
                         // refreshTeacherData()
+                        window.location.reload()
                     }
                 } catch (e) {
                     console.error(e)
@@ -116,7 +117,7 @@ const Lesson: FC<LessonProps> = ({}) => {
             const thisClass = teacherData.classes.find(c => c.id === lesson?.class_id)
             return lesson?.lesson_plan?.questions.reduce((acc, q) => {
                 acc[q.id] = thisClass?.students?.filter(s => !studentNamesFinishedByQID?.[q.id]?.includes(s.nickname))
-                    .map(s => s.nickname) ?? []
+                    ?.map(s => s.nickname) ?? []
                 return acc
             }, {} as Record<string, string[]>) ?? {}
         }
@@ -149,12 +150,12 @@ const Lesson: FC<LessonProps> = ({}) => {
     const [chart, setChart] = useState<Chart>()
     useEffect(() => {
         if (chartCanvasRef.current && lesson && lessonPlan && !chart) {
-            const allCategories = Object.values(lesson?.analysis_by_question_id ?? {}).flatMap((analysis) => Object.keys(analysis.responses_by_category))
-            const datasets = Object.keys(lesson?.analysis_by_question_id ?? {}).map((qid, i) => ({
+            const allCategories = uniq(Object.values(lesson?.analysis_by_question_id ?? {}).flatMap((analysis) => Object.keys(analysis.responses_by_category)))
+            const datasets = Object.keys(lesson?.analysis_by_question_id ?? {})?.map((qid, i) => ({
                 label: `Question ${(lessonPlan?.questions.findIndex(q => q.id === qid) ?? 0) + 1}`,
-                data: allCategories.map((category) => lesson?.analysis_by_question_id?.[qid]?.responses_by_category?.[category]?.length ?? 0),
-                borderColor: `rgb(0, 112, ${(i+1) * 50})`,
-                backgroundColor: `rgba(0, 112, ${(i+1) * 50}, 0.8)`,
+                data: allCategories?.map((category) => lesson?.analysis_by_question_id?.[qid]?.responses_by_category?.[category]?.length ?? 0),
+                // borderColor: `rgb(${Math.min(255, i * 20)}, 112, ${Math.min(255, (i+1) * 90)})`,
+                backgroundColor: `rgba(${Math.min(255, i * 20)}, 112, ${Math.min(255, (i+1) * 90)}, 0.9)`,
             }))
             const data: ChartData = {
                 labels: allCategories,
@@ -169,40 +170,45 @@ const Lesson: FC<LessonProps> = ({}) => {
                         legend: {
                             position: 'top',
                         },
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                        }
                     }
-                  },
+                },
             }))
         }
     }, [chartCanvasRef, lesson, lessonPlan, lesson?.analysis_by_question_id, chart])
 
     // Poll for lesson responses
-    useEffect(() => {
-        if (lesson && (
-            !lesson.analysis_by_question_id ||
-            Object.keys(lesson.analysis_by_question_id).some(qid =>
-                !Object.keys(lesson.analysis_by_question_id?.[qid].responses_by_category ?? {}).length
-            ))
-        ) {
-            const interval = setInterval(() => {
-                callCloudFunction<LessonWithResponses[]>("getLessons", {}).then((_lessons) => {
-                    const newLesson = _lessons?.find(l => l.id === lesson.id)
-                    setLesson(l => {
-                        if (l && newLesson?.responses) {
-                            l.responses = [...newLesson.responses]
-                        }
-                        if (l && newLesson?.analysis_by_question_id) {
-                            l.analysis_by_question_id = newLesson.analysis_by_question_id
-                        }
-                        return l
-                    })
-                    if (newLesson?.analysis_by_question_id) {
-                        clearInterval(interval)
-                    }
-                })
-            }, 2000)
-            return () => clearInterval(interval)
-        }
-    }, [lesson, lesson?.analysis_by_question_id, callCloudFunction])
+    // useEffect(() => {
+    //     if (lesson && (
+    //         !lesson.analysis_by_question_id ||
+    //         Object.keys(lesson.analysis_by_question_id).some(qid =>
+    //             !Object.keys(lesson.analysis_by_question_id?.[qid].responses_by_category ?? {}).length
+    //         ))
+    //     ) {
+    //         const interval = setInterval(() => {
+    //             callCloudFunction<LessonWithResponses[]>("getLessons", {}).then((_lessons) => {
+    //                 const newLesson = _lessons?.find(l => l.id === lesson.id)
+    //                 setLesson(l => {
+    //                     if (l && newLesson?.responses) {
+    //                         l.responses = [...newLesson.responses]
+    //                     }
+    //                     if (l && newLesson?.analysis_by_question_id) {
+    //                         l.analysis_by_question_id = newLesson.analysis_by_question_id
+    //                     }
+    //                     return l
+    //                 })
+    //                 if (newLesson?.analysis_by_question_id) {
+    //                     clearInterval(interval)
+    //                 }
+    //             })
+    //         }, 2000)
+    //         return () => clearInterval(interval)
+    //     }
+    // }, [lesson, lesson?.analysis_by_question_id, callCloudFunction])
     const [deleting, setDeleting] = useState(false)
     const [copiedLink, setCopiedLink] = useState(false)
 
@@ -286,7 +292,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                                 <hr />
                             </>}
 
-                            {lessonPlan?.questions.map((q, i) => <div key={q.id} style={{ marginBottom: "60px" }}>
+                            {lessonPlan?.questions?.map((q, i) => <div key={q.id} style={{ marginBottom: "60px" }}>
                                 <h3 style={{ marginTop: "35px" }}>
                                     <small className="supertitle">Question {i+1}:</small>
                                     {q.body_text}

@@ -100,6 +100,7 @@ export interface LessonResponse {
 	student_id: string
 	student_name: string
 	response_image_base64?: string
+	response_image_url?: string
 	response_text?: string
 	response_has_drawing?: boolean
 	analysis?: LessonResponseAnalysis

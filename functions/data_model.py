@@ -101,6 +101,7 @@ class LessonResponse:
     created_at: str
     updated_at: str
     response_image_base64: Optional[str] = None
+    response_image_url: Optional[str] = None
     response_text: Optional[str] = None
     response_has_drawing: Optional[bool] = None
     analysis: Optional['LessonResponseAnalysis'] = None
