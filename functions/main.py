@@ -2,6 +2,7 @@
 import base64
 import dataclasses
 import json
+from datetime import datetime, timedelta
 from textwrap import dedent
 from typing import Any, Dict, List
 from firebase_functions import https_fn, options
@@ -258,20 +259,28 @@ def configureDefaultLessons(_: https_fn.Request):
                 tr_data = template_response.__dict__
                 tr_data['teacher_email'] = teacher.email_address
                 # Convert the base64 images into uploaded images
+                resp_id_to_img_url[template_response.id] = template_response.response_image_url
                 if template_response.response_has_drawing and (
                     template_response.response_image_base64 is not None and template_response.response_image_base64 != "" and (
                         template_response.response_image_url is None or template_response.response_image_url == "")
                 ):
                     if template_response.id not in resp_id_to_img_url or not resp_id_to_img_url[template_response.id]:
-                        blb = bucket.blob(f"default-teacher/student-responses/{template_response.id}_drawing.png")
-                        blb.upload_from_string(base64.b64decode(
-                            template_response.response_image_base64.replace("data:image/png;base64,", "")
-                        ))
-                        resp_id_to_img_url[template_response.id] = blb._get_download_url(client=storage._StorageClient(
-                            credentials=app.credential.get_credential(),
-                            default_bucket=bucket,
-                            project=app.project_id,
-                        ))
+                        # client = storage._StorageClient.from_app(app=app)
+                        blb = bucket.blob(f"default-teacher/student-responses/{template_response.id}_drawing_{datetime.now().isoformat()}.png")
+                        blb.upload_from_string(
+                            # client=client,
+                            client=bucket.client,
+                            data=base64.b64decode(
+                                template_response.response_image_base64.replace("data:image/png;base64,", "")
+                            ),
+                            content_type="image/png",
+                        )
+                        blb.make_public()
+                        resp_id_to_img_url[template_response.id] = blb.public_url
+                        # resp_id_to_img_url[template_response.id] = blb.generate_signed_url(
+                        #     expiration=datetime.now() + timedelta(weeks=1040),
+                        #     client=client,
+                        # )
                     tr_data['response_image_url'] = resp_id_to_img_url[template_response.id]
                     tr_data['response_image_base64'] = None
                 teacher_responses_coll.document(template_response.id).set(document_data=tr_data)
@@ -299,14 +308,16 @@ def configureDefaultLessons(_: https_fn.Request):
             template_class: DocumentSnapshot = template_classes_coll.document(template_class_id).get()
             tc_data = template_class.to_dict()
             tc_data['teacher_email'] = teacher.email_address
-            teacher_classes_coll.document(template_class_id).set(document_data=tc_data)
-            print(f"wrote class {tc_data} for teacher {teacher.email_address}")
+            if not teacher_classes_coll.document(template_class_id).get().exists:
+                teacher_classes_coll.document(template_class_id).set(document_data=tc_data)
+                print(f"wrote class {tc_data} for teacher {teacher.email_address}")
             for template_student in template_students:
                 teacher_students_coll: CollectionReference = teacher_classes_coll.document(template_class_id).collection('students')
                 ts_data = template_student.__dict__
                 ts_data['teacher_email'] = teacher.email_address
-                teacher_students_coll.document(template_student.id).set(document_data=ts_data)
-                print(f"wrote student {ts_data} for teacher {teacher.email_address} and class {template_class_id}")
+                if not teacher_students_coll.document(template_student.id).get().exists:
+                    teacher_students_coll.document(template_student.id).set(document_data=ts_data)
+                    print(f"wrote student {ts_data} for teacher {teacher.email_address} and class {template_class_id}")
             
 
     return "success"
@@ -690,7 +701,24 @@ def putLesson(request: https_fn.CallableRequest):
                                     # Map the analysis to the LessonQuestionAnalysis object
                                     responses_by_student_name: dict[str, LessonResponse] = {}
                                     for resp in responses_to_question:
-                                        responses_by_student_name[resp.get('student_name')] = LessonResponse(**resp.to_dict())
+                                        resp_dict = resp.to_dict()
+                                        resp_img_base64: str = resp_dict.get('response_image_base64')
+                                        resp_img_url: str = resp_dict.get('response_image_url')
+                                        if resp_img_base64 is not None and resp_img_base64 != "" and (
+                                            resp_img_url is None or resp_img_url == ""
+                                        ):
+                                            blb = bucket.blob(f"{resp_dict.get('teacher_email')}/student-responses/{resp.id}_drawing_{datetime.now().isoformat()}.png")
+                                            blb.upload_from_string(
+                                                data=base64.b64decode(
+                                                    resp_img_base64.replace("data:image/png;base64,", "")
+                                                ),
+                                                content_type="image/png",
+                                            )
+                                            resp_dict['response_image_url'] = blb._get_download_url(
+                                                client=bucket.client
+                                            )
+                                        resp_dict['response_image_base64'] = None
+                                        responses_by_student_name[resp.get('student_name')] = LessonResponse(**resp_dict)
                                     responses_by_category: dict[str, list[LessonResponse]] = {}
                                     for analysis_raw in analyses_raw:
                                         category = analysis_raw.get('category').capitalize()
@@ -774,6 +802,7 @@ def putLessonResponse(request: https_fn.Request):
 
             # Save the response data
             responses_coll: CollectionReference = lessons_coll.document(lesson_id).collection('responses')
+            print(f"saving lesson response: {lesson_resp_data.__dict__}")
             responses_coll.document(lesson_resp_data.id).set(document_data=lesson_resp_data.__dict__, merge=True)
 
             # In the background, use the LLM to summarize each response for easier use later

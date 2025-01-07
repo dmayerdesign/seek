@@ -46,10 +46,11 @@ const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, s
             teacher_email: question.teacher_email,
             student_id: student.id,
             student_name: student.nickname,
+            created_at: new Date().toISOString(),
+            ...responseAlreadySubmitted,
             response_text: typedInput,
             response_image_url: canvasUploadedURL,
             response_has_drawing: responseHasDrawing,
-            created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
         }).then(() => {
             setSubmitted(true)
@@ -99,26 +100,30 @@ const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, s
             : <div>
                 <div style={{ maxWidth: "1000px" }}>
                     {responseAlreadySubmitted
-                        ? <div style={{ width: "100%", background: "#fff" }}>
+                        && <div>
                             {responseAlreadySubmitted.response_image_base64
-                                ? <img src={responseAlreadySubmitted.response_image_base64} style={{ width: "100%" }} />
+                                ? <div style={{ width: "100%", background: "#fff" }}><img src={responseAlreadySubmitted.response_image_base64} style={{ width: "100%" }} /></div>
+                                : responseAlreadySubmitted.response_image_url
+                                ? <div style={{ width: "100%", background: "#fff" }}><img src={responseAlreadySubmitted.response_image_url} style={{ width: "100%" }} /></div>
                                 : <p>You did not submit a drawing</p>
                             }
                         </div>
-                        : <>
-                            <p>Draw your response in the box below</p>
-                            <CanvasInput canvasRef={canvasRef} containerRef={containerRef}
-                                onDraw={() => setResponseHasDrawing(true)}
-                                onClear={() => setResponseHasDrawing(false)}
-                            />
-                        </>
                     }
+                    <>
+                        <p>Draw your response in the box below</p>
+                        <CanvasInput canvasRef={canvasRef} containerRef={containerRef}
+                            onDraw={() => setResponseHasDrawing(true)}
+                            onClear={() => setResponseHasDrawing(false)}
+                        />
+                    </>
                 </div>
             </div>}
         </div>
         <div style={{ maxWidth: "1000px", marginTop: "25px" }}>
             <button className="large-button" onClick={submit}
-                disabled={submitting || submitted || !!responseAlreadySubmitted}>
+                // disabled={submitting || submitted || !!responseAlreadySubmitted}
+                disabled={submitting || submitted}
+            >
                 {(!submitting && !submitted)
                     ? "Submit"
                     : !submitted
