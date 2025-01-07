@@ -109,13 +109,13 @@ const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, s
                             }
                         </div>
                     }
-                    <>
+                    {<>
                         <p>Draw your response in the box below</p>
                         <CanvasInput canvasRef={canvasRef} containerRef={containerRef}
                             onDraw={() => setResponseHasDrawing(true)}
                             onClear={() => setResponseHasDrawing(false)}
                         />
-                    </>
+                    </>}
                 </div>
             </div>}
         </div>

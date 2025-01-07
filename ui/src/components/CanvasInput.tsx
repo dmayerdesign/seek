@@ -12,127 +12,131 @@ export interface CanvasInputProps {
 }
 
 const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef, onDraw, onClear }) => {
-	const ctx = useRef<CanvasRenderingContext2D>()
-	const flag = useRef(false)
-	const prevX = useRef(0)
-	const currX = useRef(0)
-	const prevY = useRef(0)
-	const currY = useRef(0)
-	const dotFlag = useRef(false)
-	const w = useRef(0)
-	const h = useRef(0)
-	const color = useRef("black")
-	const lineWidth = useRef(2)
-	useEffect(() => {}, [canvasRef.current])
-	useEffect(() => {
-		const canvas = canvasRef.current
-		if (canvas) {
-			ctx.current = canvas.getContext("2d")!
-			w.current = canvas.width
-			h.current = canvas.height
-
-			canvas.addEventListener(
-				"mousemove",
-				function (e) {
-					findxy("move", e)
-				},
-				false,
-			)
-			canvas.addEventListener(
-				"mousedown",
-				function (e) {
-					findxy("down", e)
-				},
-				false,
-			)
-			canvas.addEventListener(
-				"mouseup",
-				function (e) {
-					findxy("up", e)
-				},
-				false,
-			)
-			canvas.addEventListener(
-				"mouseout",
-				function (e) {
-					findxy("out", e)
-				},
-				false,
-			)
-		}
-	}, [canvasRef.current])
-	const draw = useCallback(() => {
-		if (ctx.current) {
-			onDraw()
-			ctx.current.beginPath()
-			ctx.current.moveTo(prevX.current, prevY.current)
-			ctx.current.lineTo(currX.current, currY.current)
-			ctx.current.strokeStyle = color.current
-			ctx.current.lineWidth = lineWidth.current
-			ctx.current.stroke()
-			ctx.current.closePath()
-		}
-	}, [ctx.current, prevX.current, currX.current, prevY.current, currY.current, color.current, lineWidth.current])
-	const findxy = useCallback(
-		throttle((res: "move" | "down" | "up" | "out", e: MouseEvent) => {
-			const canvas = canvasRef.current
-			const container = containerRef.current
-			if (canvas && container && res == "down") {
-				prevX.current = currX.current
-				prevY.current = currY.current
-				currX.current = e.clientX - canvas.offsetLeft - container.getBoundingClientRect().left
-				currY.current = e.clientY - canvas.offsetTop - container.getBoundingClientRect().top
-
-				flag.current = true
-				dotFlag.current = true
-				if (ctx.current && dotFlag) {
-					ctx.current.beginPath()
-					ctx.current.fillStyle = color.current
-					ctx.current.fillRect(currX.current, currY.current, 2, 2)
-					ctx.current.closePath()
-					dotFlag.current = false
-				}
-			}
-			if (res == "up" || res == "out") {
-				flag.current = false
-			}
-			if (res == "move" && canvas && container && flag.current) {
-				prevX.current = currX.current
-				prevY.current = currY.current
-				currX.current = e.clientX - canvas.offsetLeft - container.getBoundingClientRect().left
-				currY.current = e.clientY - canvas.offsetTop - container.getBoundingClientRect().top
-				draw()
-			}
-		}, 10),
-		[canvasRef.current, flag.current, dotFlag.current, draw],
-	)
-	const clearAll = useCallback(() => {
-		const m = confirm("Are you sure?")
-		if (canvasRef.current && ctx.current && m) {
-			ctx.current.clearRect(0, 0, w.current, h.current)
-		}
-		onClear()
-	}, [ctx.current, w.current, h.current])
-	
-
-	// const canvRef = useRef<HTMLCanvasElement | null>(null)
-	// const [cfd, setCfd] = useState<CanvasFreeDrawing | null>(null)
+	// const ctx = useRef<CanvasRenderingContext2D>()
+	// const flag = useRef(false)
+	// const prevX = useRef(0)
+	// const currX = useRef(0)
+	// const prevY = useRef(0)
+	// const currY = useRef(0)
+	// const dotFlag = useRef(false)
+	// const w = useRef(0)
+	// const h = useRef(0)
+	// const color = useRef("black")
+	// const lineWidth = useRef(2)
+	// useEffect(() => {}, [canvasRef.current])
 	// useEffect(() => {
-	// 	if (canvRef.current) {
-	// 		setCfd(new CanvasFreeDrawing({
-	// 			elementId: "cfd",
-	// 			width: 1000,
-	// 			height: 700,
-	// 			showWarnings: true
-	// 		}))
+	// 	const canvas = canvasRef.current
+	// 	if (canvas) {
+	// 		ctx.current = canvas.getContext("2d")!
+	// 		w.current = canvas.width
+	// 		h.current = canvas.height
+
+	// 		canvas.addEventListener(
+	// 			"mousemove",
+	// 			function (e) {
+	// 				findxy("move", e)
+	// 			},
+	// 			false,
+	// 		)
+	// 		canvas.addEventListener(
+	// 			"mousedown",
+	// 			function (e) {
+	// 				findxy("down", e)
+	// 			},
+	// 			false,
+	// 		)
+	// 		canvas.addEventListener(
+	// 			"mouseup",
+	// 			function (e) {
+	// 				findxy("up", e)
+	// 			},
+	// 			false,
+	// 		)
+	// 		canvas.addEventListener(
+	// 			"mouseout",
+	// 			function (e) {
+	// 				findxy("out", e)
+	// 			},
+	// 			false,
+	// 		)
 	// 	}
-	// }, [canvRef.current])
+	// }, [canvasRef.current])
+	// const draw = useCallback(() => {
+	// 	if (ctx.current) {
+	// 		onDraw()
+	// 		ctx.current.beginPath()
+	// 		ctx.current.moveTo(prevX.current, prevY.current)
+	// 		ctx.current.lineTo(currX.current, currY.current)
+	// 		ctx.current.strokeStyle = color.current
+	// 		ctx.current.lineWidth = lineWidth.current
+	// 		ctx.current.stroke()
+	// 		ctx.current.closePath()
+	// 	}
+	// }, [ctx.current, prevX.current, currX.current, prevY.current, currY.current, color.current, lineWidth.current])
+	// const findxy = useCallback(
+	// 	throttle((res: "move" | "down" | "up" | "out", e: MouseEvent) => {
+	// 		const canvas = canvasRef.current
+	// 		const container = containerRef.current
+	// 		if (canvas && container && res == "down") {
+	// 			prevX.current = currX.current
+	// 			prevY.current = currY.current
+	// 			currX.current = e.clientX - canvas.offsetLeft - container.getBoundingClientRect().left
+	// 			currY.current = e.clientY - canvas.offsetTop - container.getBoundingClientRect().top
+
+	// 			flag.current = true
+	// 			dotFlag.current = true
+	// 			if (ctx.current && dotFlag) {
+	// 				ctx.current.beginPath()
+	// 				ctx.current.fillStyle = color.current
+	// 				ctx.current.fillRect(currX.current, currY.current, 2, 2)
+	// 				ctx.current.closePath()
+	// 				dotFlag.current = false
+	// 			}
+	// 		}
+	// 		if (res == "up" || res == "out") {
+	// 			flag.current = false
+	// 		}
+	// 		if (res == "move" && canvas && container && flag.current) {
+	// 			prevX.current = currX.current
+	// 			prevY.current = currY.current
+	// 			currX.current = e.clientX - canvas.offsetLeft - container.getBoundingClientRect().left
+	// 			currY.current = e.clientY - canvas.offsetTop - container.getBoundingClientRect().top
+	// 			draw()
+	// 		}
+	// 	}, 10),
+	// 	[canvasRef.current, flag.current, dotFlag.current, draw],
+	// )
 	// const clearAll = useCallback(() => {
-	// 	if (cfd) {
-	// 		cfd.clear()
+	// 	const m = confirm("Are you sure?")
+	// 	if (canvasRef.current && ctx.current && m) {
+	// 		ctx.current.clearRect(0, 0, w.current, h.current)
 	// 	}
 	// 	onClear()
-	// }, [cfd])
+	// }, [ctx.current, w.current, h.current])
+	
+
+	const canvRef = useRef<HTMLCanvasElement | null>(null)
+	const [cfd, setCfd] = useState<CanvasFreeDrawing | null>(null)
+	useEffect(() => {
+		if (canvRef.current) {
+			const _cfd = new CanvasFreeDrawing({
+				elementId: "cfd",
+				width: 1000,
+				height: 700,
+				showWarnings: true
+			})
+			console.log("cfd", _cfd)
+			_cfd.strokeColor = [0, 0, 0]
+			_cfd.lineWidth = 4
+			setCfd(_cfd)
+		}
+	}, [canvRef.current])
+	const clearAll = useCallback(() => {
+		if (cfd) {
+			cfd.clear()
+		}
+		onClear()
+	}, [cfd])
 
 	return (
 		<>
@@ -140,52 +144,16 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef, onDraw, on
 				ref={containerRef}
 				style={{
 					position: "relative",
+					// height: "700px",
 				}}
 			>
-				<div
-					style={{
-						overflow: "hidden",
-						borderRadius: "15px",
-						height: "700px",
-					}}
-				>
-					<canvas
-						id="cfd"
-						ref={canvasRef}
-						width={1000}
-						height={700}
-						style={{
-							background: "white",
-						}}
-					/>
-				</div>
-				{/* <canvas
-					id="cfd"
-					ref={canvasRef}
-				/> */}
-				<div
-					style={{
-						position: "absolute",
-						top: "-33px",
-						width: "100%",
-						textAlign: "right",
-					}}
-				>
-					<button onClick={() => clearAll()}
-						style={{
-							fontSize: "12px",
-						}}>
-						<FontAwesomeIcon icon={faTrashCan} />&nbsp;
-						Clear and start over
-					</button>
-				</div>
-				<div className="color-and-stroke" style={{ display: "flex", gap: "40px", alignItems: "center" }}>
+				<div className="color-and-stroke" style={{ display: "flex", gap: "40px", alignItems: "center", padding: "15px 0" }}>
 					<div className="stroke-width-select" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
 						{[4, 8, 12, 24, 36].map((width) => (
 							<button key={`${width}`}
 								onClick={() => {
-									lineWidth.current = width
-									// cfd?.setLineWidth(width)
+									// lineWidth.current = width
+									cfd?.setLineWidth(width)
 								}}
 								style={{
 									width: (width * 1.5) + "px",
@@ -205,8 +173,8 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef, onDraw, on
 						].map(c => (
 							<button key={JSON.stringify(c)}
 								onClick={() => {
-									color.current = `rgb(${c.join(",")})`
-									// cfd?.setDrawingColor(c)
+									// color.current = `rgb(${c.join(",")})`
+									cfd?.setDrawingColor(c)
 								}}
 								style={{
 									background: `rgb(${c.join(",")})`,
@@ -217,6 +185,43 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef, onDraw, on
 							/>
 						))}
 					</div>
+				</div>
+				<div
+					style={{
+						overflow: "hidden",
+						borderRadius: "15px",
+						// height: "700px",
+					}}
+				>
+					{/* <canvas
+						id="cfd"
+						ref={canvasRef}
+						width={1000}
+						height={700}
+						style={{
+							background: "white",
+						}}
+					/> */}
+					<canvas
+						ref={canvRef}
+						id="cfd"
+					/>
+				</div>
+				<div
+					style={{
+						position: "absolute",
+						top: "-33px",
+						width: "100%",
+						textAlign: "right",
+					}}
+				>
+					<button onClick={() => clearAll()}
+						style={{
+							fontSize: "12px",
+						}}>
+						<FontAwesomeIcon icon={faTrashCan} />&nbsp;
+						Clear and start over
+					</button>
 				</div>
 			</div>
 		</>
