@@ -25,7 +25,7 @@ export interface Class {
 	updated_at: string
 }
 export interface ClassWithStudents extends Class {
-	students: Student[]
+	students?: Student[]
 }
 
 export interface Student {
@@ -73,9 +73,9 @@ export interface Lesson {
 	class_name: string
 	teacher_name: string
 	teacher_email: string
-	responses_locked: boolean
 	created_at: string
 	updated_at: string
+	questions_locked?: string[]
 	deleted?: boolean
 	student_names_started?: string[]
 	class_data?: ClassWithStudents
@@ -101,6 +101,7 @@ export interface LessonResponse {
 	student_name: string
 	response_image_base64?: string
 	response_text?: string
+	response_has_drawing?: boolean
 	analysis?: LessonResponseAnalysis
 	created_at: string
 	updated_at: string

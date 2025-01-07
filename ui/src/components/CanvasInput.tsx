@@ -1,13 +1,17 @@
 import { faTrashCan } from "@fortawesome/free-regular-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { FC, MutableRefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
+import CanvasFreeDrawing from "canvas-free-drawing"
+import { throttle } from "lodash"
+import { FC, MutableRefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 
 export interface CanvasInputProps {
 	canvasRef: MutableRefObject<HTMLCanvasElement | null>
 	containerRef: MutableRefObject<HTMLDivElement | null>
+	onDraw: () => void
+	onClear: () => void
 }
 
-const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef }) => {
+const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef, onDraw, onClear }) => {
 	const ctx = useRef<CanvasRenderingContext2D>()
 	const flag = useRef(false)
 	const prevX = useRef(0)
@@ -58,8 +62,8 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef }) => {
 		}
 	}, [canvasRef.current])
 	const draw = useCallback(() => {
-		console.log("decided to draw", ctx.current)
 		if (ctx.current) {
+			onDraw()
 			ctx.current.beginPath()
 			ctx.current.moveTo(prevX.current, prevY.current)
 			ctx.current.lineTo(currX.current, currY.current)
@@ -70,7 +74,7 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef }) => {
 		}
 	}, [ctx.current, prevX.current, currX.current, prevY.current, currY.current, color.current, lineWidth.current])
 	const findxy = useCallback(
-		(res: "move" | "down" | "up" | "out", e: MouseEvent) => {
+		throttle((res: "move" | "down" | "up" | "out", e: MouseEvent) => {
 			const canvas = canvasRef.current
 			const container = containerRef.current
 			if (canvas && container && res == "down") {
@@ -99,45 +103,36 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef }) => {
 				currY.current = e.clientY - canvas.offsetTop - container.getBoundingClientRect().top
 				draw()
 			}
-		},
+		}, 10),
 		[canvasRef.current, flag.current, dotFlag.current, draw],
-	)
-	const changeColor = useCallback(
-		(obj: HTMLElement) => {
-			switch (obj.id) {
-				case "green":
-					color.current = "green"
-					break
-				case "blue":
-					color.current = "blue"
-					break
-				case "red":
-					color.current = "red"
-					break
-				case "yellow":
-					color.current = "yellow"
-					break
-				case "orange":
-					color.current = "orange"
-					break
-				case "black":
-					color.current = "black"
-					break
-				case "white":
-					color.current = "white"
-					break
-			}
-			if (color.current == "white") lineWidth.current = 14
-			else lineWidth.current = 2
-		},
-		[color.current, lineWidth.current],
 	)
 	const clearAll = useCallback(() => {
 		const m = confirm("Are you sure?")
 		if (canvasRef.current && ctx.current && m) {
 			ctx.current.clearRect(0, 0, w.current, h.current)
 		}
+		onClear()
 	}, [ctx.current, w.current, h.current])
+	
+
+	// const canvRef = useRef<HTMLCanvasElement | null>(null)
+	// const [cfd, setCfd] = useState<CanvasFreeDrawing | null>(null)
+	// useEffect(() => {
+	// 	if (canvRef.current) {
+	// 		setCfd(new CanvasFreeDrawing({
+	// 			elementId: "cfd",
+	// 			width: 1000,
+	// 			height: 700,
+	// 			showWarnings: true
+	// 		}))
+	// 	}
+	// }, [canvRef.current])
+	// const clearAll = useCallback(() => {
+	// 	if (cfd) {
+	// 		cfd.clear()
+	// 	}
+	// 	onClear()
+	// }, [cfd])
 
 	return (
 		<>
@@ -151,18 +146,23 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef }) => {
 					style={{
 						overflow: "hidden",
 						borderRadius: "15px",
-						height: "500px",
+						height: "700px",
 					}}
 				>
 					<canvas
+						id="cfd"
 						ref={canvasRef}
-						width={600}
-						height={500}
+						width={1000}
+						height={700}
 						style={{
 							background: "white",
 						}}
 					/>
 				</div>
+				{/* <canvas
+					id="cfd"
+					ref={canvasRef}
+				/> */}
 				<div
 					style={{
 						position: "absolute",
@@ -178,6 +178,45 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef }) => {
 						<FontAwesomeIcon icon={faTrashCan} />&nbsp;
 						Clear and start over
 					</button>
+				</div>
+				<div className="color-and-stroke" style={{ display: "flex", gap: "40px", alignItems: "center" }}>
+					<div className="stroke-width-select" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+						{[4, 8, 12, 24, 36].map((width) => (
+							<button key={`${width}`}
+								onClick={() => {
+									lineWidth.current = width
+									// cfd?.setLineWidth(width)
+								}}
+								style={{
+									width: (width * 1.5) + "px",
+									height: (width * 1.5) + "px",
+									borderRadius: "50%",
+									background: "#eee",
+									border: "none",
+								}}
+							/>
+						))}
+					</div>
+					<div className="color-select">
+						{[
+							  [231, 214, 206],[166, 152, 168],[80, 194, 54],[21, 133, 111],[35, 78, 0],
+							  [247, 246, 182],[239, 195, 6],[167, 85, 66],[2, 85, 147],[67, 68, 129],
+							  [254, 108, 83],[241, 46, 56],[216, 35, 83],[235, 139, 142],[181, 31, 143],
+						].map(c => (
+							<button key={JSON.stringify(c)}
+								onClick={() => {
+									color.current = `rgb(${c.join(",")})`
+									// cfd?.setDrawingColor(c)
+								}}
+								style={{
+									background: `rgb(${c.join(",")})`,
+									width: "25px",
+									height: "25px",
+									border: "1px solid black",
+								}}
+							/>
+						))}
+					</div>
 				</div>
 			</div>
 		</>

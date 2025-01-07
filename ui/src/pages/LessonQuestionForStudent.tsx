@@ -17,10 +17,11 @@ const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, s
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const responseAlreadySubmitted = useMemo(
-        () => lesson.responses?.filter(r => r.question_id === question.id && r.student_id === student.id)?.[0],
+        () => lesson.responses?.find(r => r.question_id === question.id && r.student_id === student.id),
         [lesson.responses, student],
     )
-    const [responseIsDrawn, setResponseIsDrawn] = useState(false)
+    const [whichInputShown, setWhichInputShown] = useState<"type"|"draw">("type")
+    const [responseHasDrawing, setResponseHasDrawing] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
 	const [typedInput, setTypedInput] = useState(responseAlreadySubmitted?.response_text ?? "")
@@ -42,6 +43,7 @@ const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, s
             student_name: student.nickname,
             response_text: typedInput,
             response_image_base64: canvasDataURL,
+            response_has_drawing: responseHasDrawing,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
         }).then(() => {
@@ -64,20 +66,21 @@ const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, s
                 />
             )}
         </div>
-        <div style={{ maxWidth: "600px", marginTop: "40px" }}>
+        <div style={{ maxWidth: "1000px", marginTop: "40px" }}>
+            <p>You may type and/or draw your response. Anything you type or draw will be submitted.</p>
             <div style={{ display: "flex", gap: "20px", paddingBottom: "10px" }}>
-                <button onClick={() => setResponseIsDrawn(false)}
-                    style={{ opacity: responseIsDrawn ? 0.5 : 1 }}>
+                <button onClick={() => setWhichInputShown("type")}
+                    style={{ opacity: whichInputShown === "type" ? 1 : 0.5 }}>
                     <FontAwesomeIcon icon={faKeyboard} />&nbsp;
                     Type
                 </button>
-                <button onClick={() => setResponseIsDrawn(true)}
-                    style={{ opacity: responseIsDrawn ? 1 : 0.5 }}>
+                <button onClick={() => setWhichInputShown("draw")}
+                    style={{ opacity: whichInputShown === "draw" ? 1 : 0.5 }}>
                     <FontAwesomeIcon icon={faHandPointer} />&nbsp;
                     Draw
                 </button>
             </div>
-            {!responseIsDrawn
+            {whichInputShown === "type"
             ? <textarea
                 id="typed-input"
                 name="typed-input"
@@ -89,15 +92,28 @@ const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, s
                 style={{ width: "100%", height: "100px" }}
             />
             : <div>
-                <p>Draw your response in the box below</p>
-                <div style={{ maxWidth: "600px" }}>
-                    <CanvasInput canvasRef={canvasRef} containerRef={containerRef} />
+                <div style={{ maxWidth: "1000px" }}>
+                    {responseAlreadySubmitted
+                        ? <div style={{ width: "100%", background: "#fff" }}>
+                            {responseAlreadySubmitted.response_image_base64
+                                ? <img src={responseAlreadySubmitted.response_image_base64} style={{ width: "100%" }} />
+                                : <p>You did not submit a drawing</p>
+                            }
+                        </div>
+                        : <>
+                            <p>Draw your response in the box below</p>
+                            <CanvasInput canvasRef={canvasRef} containerRef={containerRef}
+                                onDraw={() => setResponseHasDrawing(true)}
+                                onClear={() => setResponseHasDrawing(false)}
+                            />
+                        </>
+                    }
                 </div>
             </div>}
         </div>
-        <div style={{ maxWidth: "600px", marginTop: "25px" }}>
+        <div style={{ maxWidth: "1000px", marginTop: "25px" }}>
             <button className="large-button" onClick={submit}
-                disabled={submitting || submitted}>
+                disabled={submitting || submitted || !!responseAlreadySubmitted}>
                 {(!submitting && !submitted)
                     ? "Submit"
                     : !submitted

@@ -213,10 +213,10 @@ const TeacherHome: FC = () => {
 			if (user) {
 				try {
 					const cls = teacherData?.classes?.find((c) => c.id === studentInput.class_id)
-					const oldStudent = cls?.students.find((s) => s.id === id)
+					const oldStudent = cls?.students?.find((s) => s.id === id)
 					if (teacherData && cls && oldStudent && !isEqual(oldStudent, studentInput)) {
 						// Update our local state
-						const newStudents = [...cls.students]
+						const newStudents = [...(cls.students ?? [])]
 						newStudents[newStudents.findIndex((s) => s.id === id)] = studentInput
 						const newClass: ClassWithStudents = { ...cls, students: newStudents }
 						const newClasses = [...(teacherData.classes ?? [])]
@@ -249,6 +249,11 @@ const TeacherHome: FC = () => {
 			delete newStudentsCtrl[studentId]
 			setStudentsCtrl(newStudentsCtrl)
 			if (user) {
+				const studentHasResponses = teacherData?.lessons?.some((l) => l.responses?.some((r) => r.student_id === studentId))
+				if (studentHasResponses) {
+					window.alert("To delete this student, you must delete all responses associated with them first.")
+					return
+				}
 				await callCloudFunction("deleteStudent", {
 					id: studentId,
 					class_id: classId,
@@ -320,6 +325,11 @@ const TeacherHome: FC = () => {
 	const deleteClass = useCallback(
 		async (classId: string) => {
 			if (user) {
+				const classHasLessons = teacherData?.lessons?.some((l) => l.class_id === classId)
+				if (classHasLessons) {
+					window.alert("To delete this class, you must delete all lessons associated with it first.")
+					return
+				}
 				try {
 					await callCloudFunction("deleteClass", { id: classId })
 					fetchTeacherData()

@@ -203,6 +203,56 @@ def _getLessons(
 ######### Commands
 
 
+@https_fn.on_request(cors=options.CorsOptions(cors_origins=["*"], cors_methods=["POST", "GET"]))
+def configureDefaultLessons(_: https_fn.Request):
+    template_lesson_ids_str: str = db.collection('admin_configs').document("current").get().to_dict().get("default_lesson_ids")
+    template_lesson_ids = template_lesson_ids_str.split(',')
+
+    # Iterate over entire `teachers` collection and make sure they all have the default lessons with the exact same IDs
+    teachers_coll = db.collection('teachers')
+    teachers = list(teachers_coll.stream())
+    for teacher in teachers:
+        teacher_data = TeacherData(**teacher.to_dict())
+        teacher_id = teacher_data.id
+        teacher_ref = teachers_coll.document(teacher_id)
+
+        teacher_lessons_coll: CollectionReference = teacher_ref.collection('lessons')        
+        teacher_lesson_plans_coll: CollectionReference = teacher_ref.collection('lesson_plans')
+        teacher_classes_coll: CollectionReference = teacher_ref.collection('classes')
+
+        # Add the default lessons if they're not already there
+        for template_lesson_id_str in template_lesson_ids:
+            [template_teacher_id, template_lesson_id] = template_lesson_id_str.split(':')
+            template_teacher_ref = db.collection('teachers').document(template_teacher_id)
+            template_lesson: DocumentSnapshot = template_teacher_ref.collection('lessons').document(template_lesson_id).get()
+            template_lesson_plans_coll: CollectionReference = template_teacher_ref.collection('lesson_plans')
+            template_lesson_plan: DocumentSnapshot = template_lesson_plans_coll.document(template_lesson.to_dict().get('lesson_plan_id')).get()
+            template_classes_coll: CollectionReference = template_teacher_ref.collection('classes')
+            template_class_ref = template_classes_coll.document(template_lesson.to_dict().get('class_id'))
+            template_class: DocumentSnapshot = template_class_ref.get()
+            template_students_coll: CollectionReference = template_class_ref.collection('students')
+            template_students_snap: list[DocumentSnapshot] = list(template_students_coll.stream())
+            template_students = [Student(**student.to_dict()) for student in template_students_snap]
+
+            # if template_lesson_id not in teacher_lesson_ids:
+            teacher_lessons_coll.document(template_lesson_id).set(document_data=template_lesson.to_dict())
+            # In the same way, add the lesson plan if it's not already there
+            template_lesson_plan_id = template_lesson.to_dict().get('lesson_plan_id')
+            # if template_lesson_plan_id not in teacher_lesson_plan_ids:
+            template_lesson_plan: DocumentSnapshot = template_lesson_plans_coll.document(template_lesson_plan_id).get()
+            teacher_lesson_plans_coll.document(template_lesson_plan_id).set(document_data=template_lesson_plan.to_dict())
+            # if template_class_id not in teacher_class_ids:
+            template_class_id = template_lesson.to_dict().get('class_id')
+            template_class: DocumentSnapshot = db.collection('teachers').document(teacher_id).collection('classes').document(template_class_id).get()
+            teacher_classes_coll.document(template_class_id).set(document_data=template_class.to_dict())
+            for template_student in template_students:
+                teacher_students_coll: CollectionReference = teacher_classes_coll.document(template_class_id).collection('students')
+                teacher_students_coll.document(template_student.id).set(document_data=template_student.__dict__)
+            
+
+    return "success"
+
+
 @https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
 def putTeacher(request: https_fn.CallableRequest):
     if request.auth is not None and request.auth.uid is not None:
@@ -414,23 +464,25 @@ def putLesson(request: https_fn.CallableRequest):
                     print("lesson saved")
 
                     # If the lesson existed (this is an update, not a create), check if we're going from not locked to locked
-                    if old_lesson is not None and old_lesson.responses_locked is False and new_lesson.responses_locked is True:
-                        attempts_remaining = 15
-                        # Analysis happens asynchronously when the student submits the response
-                        # Poll until all responses are analyzed
-                        while True:
-                            responses = list(lesson_ref.collection('responses').stream())
-                            responses = [LessonResponse(**response.to_dict()) for response in responses]
-                            if attempts_remaining == 0:
-                                break
-                            if all(
-                                response.analysis is not None
-                                for response in responses
-                            ):
-                                break
-                            else:
-                                attempts_remaining -= 1
-                                asyncio.sleep(2)
+                    if old_lesson is not None and len(new_lesson.questions_locked) > len(old_lesson.questions_locked):
+                        responses: List[DocumentSnapshot] = list(lesson_ref.collection('responses').stream())
+
+                        # attempts_remaining = 15
+                        # # Analysis happens asynchronously when the student submits the response
+                        # # Poll until all responses are analyzed
+                        # while True:
+                        #     responses = list(lesson_ref.collection('responses').stream())
+                        #     responses = [LessonResponse(**response.to_dict()) for response in responses]
+                        #     if attempts_remaining == 0:
+                        #         break
+                        #     if all(
+                        #         response.analysis is not None
+                        #         for response in responses
+                        #     ):
+                        #         break
+                        #     else:
+                        #         attempts_remaining -= 1
+                        #         asyncio.sleep(2)
                         
                         if len(responses) == 0:
                             raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="no responses to analyze")
@@ -442,8 +494,21 @@ def putLesson(request: https_fn.CallableRequest):
                         lesson_questions = list(questions_ref.stream())
                         lesson_questions = [LessonQuestion(**lesson_questions[i].to_dict()) for i in range(len(lesson_questions))]
                         analysis_by_question_id: dict[str, Dict[str, Any]] = {}
+                        preset_categories: list[str] = []
                         for question in lesson_questions:
-                            responses_to_question = [response for response in responses if response.question_id == question.id]
+
+                            responses_to_question = [response for response in responses if response.to_dict().get('question_id') == question.id]
+
+                            # If no responses, skip
+                            if len(responses_to_question) == 0:
+                                continue
+
+                            # If the analysis is already done, skip
+                            if lesson.analysis_by_question_id is not None and question.id in lesson.analysis_by_question_id and lesson.analysis_by_question_id[question.id] is not None:
+                                analysis = lesson.analysis_by_question_id[question.id]
+                                preset_categories = analysis.responses_by_category.keys()
+                                continue
+
                             llm_messages = []
                             llm_messages.append({
                                 "role": "user",
@@ -471,7 +536,7 @@ def putLesson(request: https_fn.CallableRequest):
                                         },
                                     })
                                 elif file_ext_lower in ['png', 'jpg', 'jpeg']:
-                                    if file_ext_lower is 'jpg':
+                                    if file_ext_lower == 'jpg':
                                         file_ext_lower = 'jpeg'
                                     ctx_materials_message_content.append({
                                         "type": "image",
@@ -492,26 +557,36 @@ def putLesson(request: https_fn.CallableRequest):
                                 })
 
                             # Add categorization_guidance if any
-                            if question.categorization_guidance is not None:
+                            if len(preset_categories) > 0:
                                 llm_messages.append({
                                     "role": "user",
                                     "content": [{
                                         "type": "text",
-                                        "text": "I expect students' responses to fall into the following categories, "+
-                                            "though this list is not necessarily exhaustive:\n"+
-                                            question.categorization_guidance,
+                                        "text": "Please use the following categories in your analysis:\n\n"+
+                                            ", ".join(preset_categories)+"\n\n"+
+                                            "Consider ALL of these carefully when deciding how to categorize each student's response.",
+                                    }],
+                                })
+                            elif question.categorization_guidance is not None:
+                                llm_messages.append({
+                                    "role": "user",
+                                    "content": [{
+                                        "type": "text",
+                                        "text": "Please use the following as guidance for how to categorize responses:\n\n"+
+                                            question.categorization_guidance+"\n\n"+
+                                            "Consider ALL of the categories mentioned here carefully when deciding how to categorize each student's response.",
                                     }],
                                 })
 
                             # Add the student responses
                             lesson_responses_message_content = [{
                                 "type": "text",
-                                "text": "And here are my students' responses:", # TODO: Add anti-prompt-injection language?
+                                "text": "Now here are my students' responses:", # TODO: Add anti-prompt-injection language?
                             }]
                             for resp in responses_to_question:
                                 lesson_responses_message_content.append({
                                     "type": "text",
-                                    "text": f"{resp.student_name} answered: {resp.analysis.get('response_summary')}",
+                                    "text": f"{resp.get('student_name')} answered: {resp.get('analysis.response_summary')}",
                                 })
                             llm_messages.append({
                                 "role": "user",
@@ -522,19 +597,15 @@ def putLesson(request: https_fn.CallableRequest):
                             llm_messages.append({
                                 "role": "user",
                                 "content": dedent(f"""
-                                    As my assistant, you have one task that will help me administer this lesson:
-                                    sort the students' responses into categories. The categories will be used to organize
-                                    discussion groups that ideally lead to each student reworking their own hypothesis to reach
-                                    a deep understanding of the explanation provided in their textbook.
-                                                  
-                                    There should be at least 2 categories, and no more than 5, so while answers might vary a lot,
-                                    do your best to categorize in a way that will help the students draw connections between each
-                                    other's explanations.
+                                    As my assistant, you have one task that will help me administer this lesson: sort the students' responses into categories. The categories will be used to organize discussion groups that ideally lead to each student reworking their own hypothesis to reach a deep understanding of the explanation provided in their textbook.
                                     
-                                    Your next response should be output in JSON format, as a JSON array structured as follows:
-                                    Each element must be an object with 2 fields, "category" and "student_name", each containing a string.
+                                    While answers might vary a lot, do your best to categorize in a way that will help the students draw connections between each other's explanations.
+                                    
+                                    Pay extra attention to any guidance I have already provided on which categories to use. I expect all of my category suggestions to be considered thoughtfully.
+                                    
+                                    Your next response should be output in JSON format, as a JSON array structured as follows: each element must be an object with 2 fields, "category" and "student_name", each containing a string.
                                     Make sure every single student is included in the array, and that each student belongs to exactly one category.
-                                                  
+                                    
                                     Respond with the JSON array ONLY, and no other text.
                                 """),
                             })
@@ -554,10 +625,10 @@ def putLesson(request: https_fn.CallableRequest):
                             # Map the analysis to the LessonQuestionAnalysis object
                             responses_by_student_name: dict[str, LessonResponse] = {}
                             for resp in responses_to_question:
-                                responses_by_student_name[resp.student_name] = resp
+                                responses_by_student_name[resp.get('student_name')] = LessonResponse(**resp.to_dict())
                             responses_by_category: dict[str, list[LessonResponse]] = {}
                             for analysis_raw in analyses_raw:
-                                category = analysis_raw.get('category')
+                                category = analysis_raw.get('category').capitalize()
                                 student_name = analysis_raw.get('student_name')
                                 if category not in responses_by_category:
                                     responses_by_category[category] = []
@@ -620,10 +691,6 @@ def putLessonResponse(request: https_fn.Request):
         lessons_coll: CollectionReference = teacher_ref.collection('lessons')
         lesson = Lesson(**lessons_coll.document(lesson_id).get().to_dict())
 
-        # If responses are locked, return
-        if lesson.responses_locked:
-            raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="responses locked")
-
         # Look up the question via the lesson_plan
         lesson_plans_coll: CollectionReference = teacher_ref.collection('lesson_plans')
         lesson_plan = LessonPlan(**lesson_plans_coll.document(lesson.lesson_plan_id).get().to_dict())
@@ -631,6 +698,10 @@ def putLessonResponse(request: https_fn.Request):
         question_data = LessonQuestion(**questions_coll.document(question_id).get().to_dict())
 
         if question_data is not None:
+            # If responses are locked, return
+            if lesson.questions_locked is not None and question_data.id in lesson.questions_locked:
+                raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="responses locked")
+
             # Save the response data
             responses_coll: CollectionReference = lessons_coll.document(lesson_id).collection('responses')
             responses_coll.document(lesson_resp_data.id).set(document_data=lesson_resp_data.__dict__, merge=True)
@@ -686,7 +757,7 @@ async def analyze_lesson_response(
     summary = lesson_resp_data.response_text
 
     # If the student responded with a drawing, use Claude to summarize it, and append it to the summary
-    if lesson_resp_data.response_image_base64 is not None and len(lesson_resp_data.response_image_base64) > 0:
+    if lesson_resp_data.response_has_drawing and len(lesson_resp_data.response_image_base64) > 0:
         llm_messages = []
         message_content = [
             {

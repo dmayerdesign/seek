@@ -1,5 +1,5 @@
 import { createRef, FC, ForwardRefRenderFunction, MutableRefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { AppCtx, LessonPlanWithQuestions, LessonWithResponses, TeacherData } from "../data-model";
+import { AppCtx, LessonPlanWithQuestions, LessonResponse, LessonWithResponses, TeacherData } from "../data-model";
 import { useNavigate, useParams } from "react-router-dom";
 import { parseISO } from "date-fns"
 import { groupBy, isEqual, set, uniq } from "lodash";
@@ -7,6 +7,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import { faChevronLeft, faLink } from "@fortawesome/free-solid-svg-icons";
 import LessonQuestionResponses from "./LessonQuestionResponses";
+import Chart, { ChartData } from 'chart.js/auto'
+import { getRelativePosition } from 'chart.js/helpers'
 
 export interface LessonProps {}
 
@@ -50,12 +52,12 @@ const Lesson: FC<LessonProps> = ({}) => {
         }
     }, [lessonId, teacherData, lesson])
     useEffect(() => {
-        if (lesson) {
+        if (lesson?.id) {
             callCloudFunction<LessonPlanWithQuestions[]>("getLessonPlans", {}).then((_lessonPlans) => {
                 setLessonPlan(_lessonPlans?.find(lp => lp.id === lesson.lesson_plan_id))
             })
         }
-    }, [lesson])
+    }, [lesson?.id])
     const editLesson = useCallback(
         async (id: string, lessonInput: LessonWithResponses) => {
             if (teacherData) {
@@ -94,26 +96,93 @@ const Lesson: FC<LessonProps> = ({}) => {
         },
         [teacherData, callCloudFunction],
     )
-    const studentNamesFinished = useMemo(() => {
+    const responsesByQID = useMemo(() => {
         if (lesson?.responses) {
-            const grouped = Object.values(groupBy(lesson.responses.map(r => r.student_name), (n) => n))
-            return uniq(grouped.filter(g => g.length === lessonPlan?.questions.length).flatMap(g => g))
+            return groupBy(lesson.responses, (r) => r.question_id)
         }
-    }, [lessonPlan?.questions, lesson?.responses])
-    const studentNamesNotFinished = useMemo(() => {
+        return {}
+    }, [lesson, lesson?.responses])
+    const studentNamesFinishedByQID = useMemo(() => {
+        if (lesson?.responses) {
+            return lesson.responses.reduce((acc, r) => {
+                acc[r.question_id] = [...(acc[r.question_id] ?? []), r.student_name]
+                return acc
+            }, {} as Record<string, string[]>)
+        }
+        return {}
+    }, [lesson?.responses])
+    const studentNamesNotFinishedByQID = useMemo(() => {
         if (teacherData?.classes) {
             const thisClass = teacherData.classes.find(c => c.id === lesson?.class_id)
-            return thisClass?.students?.filter(s => !studentNamesFinished?.includes(s.nickname))
-                .map(s => s.nickname)
+            return lesson?.lesson_plan?.questions.reduce((acc, q) => {
+                acc[q.id] = thisClass?.students?.filter(s => !studentNamesFinishedByQID?.[q.id]?.includes(s.nickname))
+                    .map(s => s.nickname) ?? []
+                return acc
+            }, {} as Record<string, string[]>) ?? {}
         }
-        return []
-    }, [teacherData?.classes, studentNamesFinished])
-    const studentNamesStartedNotFinished = useMemo(() => {
-        return lesson?.student_names_started?.filter((sn) => !studentNamesFinished?.includes(sn))
-    }, [lesson?.student_names_started, studentNamesFinished])
+        return {}
+    }, [lesson?.responses])
+    const studentNamesStartedNotFinishedByQID = useMemo(() => {
+        return Object.entries(studentNamesFinishedByQID).reduce((acc, [qid, studentNamesFinished]) => {
+            acc[qid] = lesson?.student_names_started?.filter((sn) => !studentNamesFinished?.includes(sn)) ?? []
+            return acc
+        }, {} as Record<string, string[]>)
+    }, [lesson?.student_names_started, studentNamesFinishedByQID])
+    // const studentNamesFinished = useMemo(() => {
+    //     if (lesson?.responses) {
+    //         const grouped = Object.values(groupBy(lesson.responses.map(r => r.student_name), (n) => n))
+    //         return uniq(grouped.filter(g => g.length === lessonPlan?.questions.length).flatMap(g => g))
+    //     }
+    // }, [lessonPlan?.questions, lesson?.responses])
+    // const studentNamesNotFinished = useMemo(() => {
+    //     if (teacherData?.classes) {
+    //         const thisClass = teacherData.classes.find(c => c.id === lesson?.class_id)
+    //         return thisClass?.students?.filter(s => !studentNamesFinished?.includes(s.nickname))
+    //             .map(s => s.nickname)
+    //     }
+    //     return []
+    // }, [teacherData?.classes, studentNamesFinished])
+    // const studentNamesStartedNotFinished = useMemo(() => {
+    //     return lesson?.student_names_started?.filter((sn) => !studentNamesFinished?.includes(sn))
+    // }, [lesson?.student_names_started, studentNamesFinished])
+    const chartCanvasRef = useRef<HTMLCanvasElement>(null)
+    const [chart, setChart] = useState<Chart>()
+    useEffect(() => {
+        if (chartCanvasRef.current && lesson && lessonPlan && !chart) {
+            const allCategories = Object.values(lesson?.analysis_by_question_id ?? {}).flatMap((analysis) => Object.keys(analysis.responses_by_category))
+            const datasets = Object.keys(lesson?.analysis_by_question_id ?? {}).map((qid, i) => ({
+                label: `Question ${(lessonPlan?.questions.findIndex(q => q.id === qid) ?? 0) + 1}`,
+                data: allCategories.map((category) => lesson?.analysis_by_question_id?.[qid]?.responses_by_category?.[category]?.length ?? 0),
+                borderColor: `rgb(0, 112, ${(i+1) * 50})`,
+                backgroundColor: `rgba(0, 112, ${(i+1) * 50}, 0.8)`,
+            }))
+            const data: ChartData = {
+                labels: allCategories,
+                datasets,
+            }
+            setChart(new Chart(chartCanvasRef.current, {
+                type: 'bar',
+                data,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                    }
+                  },
+            }))
+        }
+    }, [chartCanvasRef, lesson, lessonPlan, lesson?.analysis_by_question_id, chart])
+
     // Poll for lesson responses
     useEffect(() => {
-        if (lesson && !lesson.analysis_by_question_id) {
+        if (lesson && (
+            !lesson.analysis_by_question_id ||
+            Object.keys(lesson.analysis_by_question_id).some(qid =>
+                !Object.keys(lesson.analysis_by_question_id?.[qid].responses_by_category ?? {}).length
+            ))
+        ) {
             const interval = setInterval(() => {
                 callCloudFunction<LessonWithResponses[]>("getLessons", {}).then((_lessons) => {
                     const newLesson = _lessons?.find(l => l.id === lesson.id)
@@ -133,7 +202,7 @@ const Lesson: FC<LessonProps> = ({}) => {
             }, 2000)
             return () => clearInterval(interval)
         }
-    }, [lesson, callCloudFunction])
+    }, [lesson, lesson?.analysis_by_question_id, callCloudFunction])
     const [deleting, setDeleting] = useState(false)
     const [copiedLink, setCopiedLink] = useState(false)
 
@@ -210,43 +279,35 @@ const Lesson: FC<LessonProps> = ({}) => {
 
                             <hr />
 
-                            {!lesson.responses?.length && <p>
-                                <em>Waiting for the class to begin</em>
-                            </p>}
-                            {!!studentNamesFinished?.length && <p>
-                                Got responses from {studentNamesFinished?.join(", ")}
-                            </p>}
-                            {!!studentNamesNotFinished?.length && !studentNamesStartedNotFinished?.length && <p>
-                                <em>Did not get responses from</em>&nbsp;
-                                {studentNamesNotFinished?.join(", ")}
-                            </p>}
-                            {!!studentNamesStartedNotFinished?.length && <p>
-                                <em>Still waiting for:</em>&nbsp;
-                                {studentNamesStartedNotFinished?.join(", ")}
-                            </p>}
+                            {!!lesson.analysis_by_question_id && <>
+                                <div className="charts" style={{ width: "100%", height: "300px" }}>
+                                    <canvas id="chart-canvas" ref={chartCanvasRef}></canvas>
+                                </div>
+                                <hr />
+                            </>}
 
-                            <div>
-                                {lesson.responses_locked
-                                    ? <span style={{ opacity: "0.5" }}>
-                                        <em>Responses locked</em>
-                                    </span>
-                                    : <button onClick={() => {
-                                        editLesson(lesson.id, {
-                                            ...lesson,
-                                            responses_locked: true,
-                                        })
-                                    }}>
-                                        Lock responses
-                                    </button>}
-                            </div>
-
-                            <hr />
-
-                            {lessonPlan?.questions.map((q, i) => <div key={q.id}>
+                            {lessonPlan?.questions.map((q, i) => <div key={q.id} style={{ marginBottom: "60px" }}>
                                 <h3 style={{ marginTop: "35px" }}>
                                     <small className="supertitle">Question {i+1}:</small>
                                     {q.body_text}
                                 </h3>
+                                
+                                <div>
+                                    {!responsesByQID[q.id]?.length && <p>
+                                        <em>Waiting for the class to begin</em>
+                                    </p>}
+                                    {!!studentNamesFinishedByQID[q.id]?.length && <p>
+                                        Got responses from {studentNamesFinishedByQID[q.id]?.join(", ")}
+                                    </p>}
+                                    {!!studentNamesNotFinishedByQID[q.id]?.length && !studentNamesStartedNotFinishedByQID[q.id]?.length && <p>
+                                        <em>Did not get responses from</em>&nbsp;
+                                        {studentNamesNotFinishedByQID[q.id]?.join(", ")}
+                                    </p>}
+                                    {!!studentNamesStartedNotFinishedByQID[q.id]?.length && <p>
+                                        <em>Still waiting for:</em>&nbsp;
+                                        {studentNamesStartedNotFinishedByQID[q.id]?.join(", ")}
+                                    </p>}
+                                </div>
 
                                 {!!q.media_content_urls?.length &&
                                 <div style={{ display: "flex", gap: "10px", height: "150px" }}>
@@ -256,11 +317,31 @@ const Lesson: FC<LessonProps> = ({}) => {
                                 <hr />
 
                                 <div id="student-responses">
+                                    <div style={{ marginBottom: "20px" }}>
+                                        {lesson.questions_locked?.includes(q.id)
+                                            ? <span style={{ opacity: "0.5" }}>
+                                                <em>Responses locked</em>
+                                            </span>
+                                            : <button
+                                                disabled={
+                                                    !lesson.responses?.filter(r => r.question_id === q.id) ||
+                                                    lesson.responses.filter(r => r.question_id === q.id).some(r => !r.analysis)
+                                                }
+                                                onClick={() => {
+                                                    editLesson(lesson.id, {
+                                                        ...lesson,
+                                                        questions_locked: [ ...(lesson.questions_locked ?? []), q.id ],
+                                                    })
+                                                }}>
+                                                Lock responses
+                                            </button>}
+                                    </div>
+
                                     {!lesson.responses?.length && <>
                                         <p style={{ marginBottom: "30px" }}><em>No responses yet</em></p>
                                     </>}
 
-                                    {lesson.responses_locked &&
+                                    {lesson.questions_locked?.includes(q.id) &&
                                     !!lesson.responses?.length &&
                                     !lesson.analysis_by_question_id?.[q.id]?.responses_by_category && <>
                                         <p style={{ marginBottom: "30px" }}><em>Analyzing...</em></p>
