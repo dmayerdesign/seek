@@ -5,13 +5,14 @@ import { throttle } from "lodash"
 import { FC, MutableRefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 
 export interface CanvasInputProps {
+	id: string
 	canvasRef: MutableRefObject<HTMLCanvasElement | null>
 	containerRef: MutableRefObject<HTMLDivElement | null>
 	onDraw: () => void
 	onClear: () => void
 }
 
-const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef, onDraw, onClear }) => {
+const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw, onClear }) => {
 	// const ctx = useRef<CanvasRenderingContext2D>()
 	// const flag = useRef(false)
 	// const prevX = useRef(0)
@@ -120,12 +121,11 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef, onDraw, on
 	useEffect(() => {
 		if (canvRef.current) {
 			const _cfd = new CanvasFreeDrawing({
-				elementId: "cfd",
+				elementId: id + "_cfd",
 				width: 1000,
 				height: 700,
 				showWarnings: true
 			})
-			console.log("cfd", _cfd)
 			_cfd.strokeColor = [0, 0, 0]
 			_cfd.lineWidth = 4
 			setCfd(_cfd)
@@ -167,6 +167,7 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef, onDraw, on
 					</div>
 					<div className="color-select">
 						{[
+							  [0,0,0],
 							  [231, 214, 206],[166, 152, 168],[80, 194, 54],[21, 133, 111],[35, 78, 0],
 							  [247, 246, 182],[239, 195, 6],[167, 85, 66],[2, 85, 147],[67, 68, 129],
 							  [254, 108, 83],[241, 46, 56],[216, 35, 83],[235, 139, 142],[181, 31, 143],
@@ -194,7 +195,7 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef, onDraw, on
 					}}
 				>
 					{/* <canvas
-						id="cfd"
+						id={id + "_cfd"}
 						ref={canvasRef}
 						width={1000}
 						height={700}
@@ -203,8 +204,8 @@ const CanvasInput: FC<CanvasInputProps> = ({ canvasRef, containerRef, onDraw, on
 						}}
 					/> */}
 					<canvas
+						id={id + "_cfd"}
 						ref={canvRef}
-						id="cfd"
 					/>
 				</div>
 				<div
