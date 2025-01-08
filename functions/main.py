@@ -534,7 +534,9 @@ def putLesson(request: https_fn.CallableRequest):
                     print("lesson saved")
 
                     # If the lesson existed (this is an update, not a create), check if we're going from not locked to locked
-                    if old_lesson is not None and len(new_lesson.questions_locked) > len(old_lesson.questions_locked):
+                    num_questions_locked_before = len(old_lesson.questions_locked) if old_lesson is not None and old_lesson.questions_locked is not None else 0
+                    num_questions_locked_after = len(new_lesson.questions_locked) if new_lesson.questions_locked is not None else 0
+                    if old_lesson is not None and num_questions_locked_after > num_questions_locked_before:
                         responses: List[DocumentSnapshot] = list(lesson_ref.collection('responses').stream())
 
                         # attempts_remaining = 15
