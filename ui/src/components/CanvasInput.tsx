@@ -1,6 +1,6 @@
 import { faTrashCan } from "@fortawesome/free-regular-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import CanvasFreeDrawing from "canvas-free-drawing"
+import CanvasFreeDrawing, { AllowedEvents } from "canvas-free-drawing"
 import { throttle } from "lodash"
 import { FC, MutableRefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 
@@ -116,10 +116,9 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 	// }, [ctx.current, w.current, h.current])
 	
 
-	const canvRef = useRef<HTMLCanvasElement | null>(null)
 	const [cfd, setCfd] = useState<CanvasFreeDrawing | null>(null)
 	useEffect(() => {
-		if (canvRef.current) {
+		if (canvasRef.current) {
 			const _cfd = new CanvasFreeDrawing({
 				elementId: id + "_cfd",
 				width: 1000,
@@ -128,9 +127,12 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 			})
 			_cfd.strokeColor = [0, 0, 0]
 			_cfd.lineWidth = 4
+			_cfd.on({ event: AllowedEvents.redraw }, () => {
+				onDraw()
+			})
 			setCfd(_cfd)
 		}
-	}, [canvRef.current])
+	}, [canvasRef.current])
 	const clearAll = useCallback(() => {
 		if (cfd) {
 			cfd.clear()
@@ -205,7 +207,7 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 					/> */}
 					<canvas
 						id={id + "_cfd"}
-						ref={canvRef}
+						ref={canvasRef}
 					/>
 				</div>
 				<div

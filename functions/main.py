@@ -579,8 +579,9 @@ def putLesson(request: https_fn.CallableRequest):
 
                                     # If the analysis is already done, skip
                                     if lesson.analysis_by_question_id is not None and question.id in lesson.analysis_by_question_id and lesson.analysis_by_question_id[question.id] is not None:
-                                        analysis = lesson.analysis_by_question_id[question.id]
-                                        preset_categories = analysis.responses_by_category.keys()
+                                        analysis_already_done: Dict[str, Any] = lesson.analysis_by_question_id[question.id]
+                                        responses_by_cat: dict[str, Any] = analysis_already_done.get('responses_by_category')
+                                        preset_categories = responses_by_cat.keys()
                                         continue
 
                                     llm_messages = []
@@ -806,12 +807,10 @@ def putLessonResponse(request: https_fn.Request):
             responses_coll.document(lesson_resp_data.id).set(document_data=lesson_resp_data.__dict__, merge=True)
 
             # In the background, use the LLM to summarize each response for easier use later
-            asyncio.new_event_loop().run_until_complete(
-                analyze_lesson_response(
-                    question_data,
-                    responses_coll.document(lesson_resp_data.id),
-                    lesson_resp_data,
-                )
+            analyze_lesson_response(
+                question_data,
+                responses_coll.document(lesson_resp_data.id),
+                lesson_resp_data,
             )
 
             return https_fn.Response(
@@ -847,7 +846,7 @@ def postStudentNameStarted(request: https_fn.Request):
     raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
 
-async def analyze_lesson_response(
+def analyze_lesson_response(
     question_data: LessonQuestion,
     lesson_response_doc_ref: DocumentReference,
     lesson_resp_data: LessonResponse,
@@ -899,7 +898,7 @@ async def analyze_lesson_response(
         print("Claude responded with content:")
         print(message.content)
         # Append it to the summary
-        summary = summary + "\n\n" if len(summary) > 0 else summary
+        summary = summary + "\n\n" if len(summary) > 0 else ""
         summary = summary + message.content[0].text
 
     # Save the summary

@@ -38,43 +38,42 @@ const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, s
         }
     }, [search])
 	const submit = useCallback(async () => {
-        setSubmitting(true)
-        
-        let canvasDataURL: string | undefined = undefined
-        let canvasUploadedURL: string | undefined = undefined
-        if (fileToUpload) {
-            const blob = fileToUpload.slice(0, fileToUpload.size, 'image/png'); 
-            const fileForUpload = new File([blob], `drawing-${Date.now()}.png`, {type: 'image/png'});
-            canvasUploadedURL = await uploadFile(fileForUpload, `${lesson.teacher_email}/student-responses`)
-        } else {
-            if (canvasRef.current) {
+        if (canvasRef.current) {
+            setSubmitting(true)
+            let canvasDataURL: string | undefined = undefined
+            let canvasUploadedURL: string | undefined = undefined
+            if (fileToUpload) {
+                const blob = fileToUpload.slice(0, fileToUpload.size, 'image/png'); 
+                const fileForUpload = new File([blob], `drawing-${Date.now()}.png`, {type: 'image/png'});
+                canvasUploadedURL = await uploadFile(fileForUpload, `${lesson.teacher_email}/student-responses`)
+            } else {
                 canvasDataURL = canvasRef.current.toDataURL()
                 console.log(canvasDataURL)
                 const file = await urlToFile(canvasDataURL!, `drawing-${Date.now()}.png`)
                 canvasUploadedURL = await uploadFile(file, `${lesson.teacher_email}/student-responses`)
             }
+    
+            submitResponse({
+                id: v4(),
+                question_id: question.id,
+                lesson_id: lesson.id,
+                teacher_email: question.teacher_email,
+                student_id: student.id,
+                student_name: student.nickname,
+                created_at: new Date().toISOString(),
+                ...responseAlreadySubmitted,
+                response_text: typedInput,
+                response_image_url: canvasUploadedURL,
+                response_has_drawing: responseHasDrawing || !!fileToUpload,
+                updated_at: new Date().toISOString(),
+            }).then(() => {
+                setSubmitted(true)
+                if (containerRef.current) {
+                    containerRef.current.style.cursor = "not-allowed"
+                    containerRef.current.style.pointerEvents = "none"
+                }
+            })
         }
-
-        submitResponse({
-            id: v4(),
-            question_id: question.id,
-            lesson_id: lesson.id,
-            teacher_email: question.teacher_email,
-            student_id: student.id,
-            student_name: student.nickname,
-            created_at: new Date().toISOString(),
-            ...responseAlreadySubmitted,
-            response_text: typedInput,
-            response_image_url: canvasUploadedURL,
-            response_has_drawing: responseHasDrawing,
-            updated_at: new Date().toISOString(),
-        }).then(() => {
-            setSubmitted(true)
-            if (containerRef.current) {
-                containerRef.current.style.cursor = "not-allowed"
-                containerRef.current.style.pointerEvents = "none"
-            }
-        })
 	}, [containerRef.current, canvasRef.current, typedInput, fileToUpload])
 
     return <section style={{ padding: "0" }}>
@@ -124,15 +123,18 @@ const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, s
                             }
                         </div>
                     }
-                    {<>
+                    {<div style={{ marginTop: "50px" }}>
                         <p>Draw your response in the box below</p>
                         <CanvasInput id={question.id}
                             canvasRef={canvasRef}
                             containerRef={containerRef}
                             onDraw={() => setResponseHasDrawing(true)}
-                            onClear={() => setResponseHasDrawing(false)}
+                            onClear={() => {
+                                setResponseHasDrawing(false)
+                                // TODO: Clear response_image_url value too?
+                            }}
                         />
-                    </>}
+                    </div>}
                 </div>
             </div>
             {showUploadBtn && <div>
