@@ -570,6 +570,8 @@ def putLesson(request: https_fn.CallableRequest):
                                 analysis_by_question_id: dict[str, Dict[str, Any]] = {}
                                 preset_categories: list[str] = []
                                 for question in lesson_questions:
+                                    if new_lesson.questions_locked is None or question.id not in new_lesson.questions_locked:
+                                        continue
 
                                     responses_to_question = [response for response in responses if response.to_dict().get('question_id') == question.id]
 
@@ -639,7 +641,7 @@ def putLesson(request: https_fn.CallableRequest):
                                                 "type": "text",
                                                 "text": "Please use the following categories in your analysis:\n\n"+
                                                     ", ".join(preset_categories)+"\n\n"+
-                                                    "Consider ALL of these carefully when deciding how to categorize each student's response.",
+                                                    "Consider ALL of these carefully when deciding how to categorize each student's response. It is encouraged to have multiple categories per resoinse if and only if the response fits the requirements of more than one category.",
                                             }],
                                         })
                                     elif question.categorization_guidance is not None:
@@ -649,7 +651,7 @@ def putLesson(request: https_fn.CallableRequest):
                                                 "type": "text",
                                                 "text": "Please use the following as guidance for how to categorize responses:\n\n"+
                                                     question.categorization_guidance+"\n\n"+
-                                                    "Consider ALL of the categories mentioned here carefully when deciding how to categorize each student's response.",
+                                                    "Consider ALL of the categories mentioned here carefully when deciding how to categorize each student's response.It is encouraged to have multiple categories per resoinse if and only if the response fits the requirements of more than one category.",
                                             }],
                                         })
 
@@ -672,9 +674,10 @@ def putLesson(request: https_fn.CallableRequest):
                                     llm_messages.append({
                                         "role": "user",
                                         "content": dedent(f"""
-                                            As my assistant, you have one task that will help me administer this lesson: sort the students' responses into categories.
                                             
-                                            The categories will be used to track how students' understanding of the concept evolves over time, sometimes moving from one category to another as their understanding deepens.
+                                            You are a teaching assistant who is experienced in high school level topics. As my assistant, you have one task that will help me administer this lesson: sort the students' responses into categories.
+                                            
+                                            The categories will be used to track how students' understanding of the concept evolves over time, sometimes moving from one category to another as their understanding deepens. Sometimes expanding the understanding from one category to two or more.
                                             
                                             Do your best to categorize in a way that will help the students draw connections between each other's explanations.
                                             
