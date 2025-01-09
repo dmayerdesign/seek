@@ -154,7 +154,7 @@ const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, s
         <div style={{ maxWidth: "1000px", marginTop: "25px" }}>
             <button className="large-button" onClick={() => submit()}
                 // disabled={submitting || submitted || !!responseAlreadySubmitted}
-                disabled={submitting || submitted}
+                disabled={!!lesson.questions_locked?.find(q => q === question.id) || submitting || submitted}
             >
                 {(!submitting && !submitted)
                     ? "Submit"

@@ -701,7 +701,7 @@ def putLesson(request: https_fn.CallableRequest):
 
                                     Use this object as a starting point, and simply populate each array with the students' names belonging in that category:
                                                   
-                                    {json.dumps({x: [] for x in preset_categories} | {"uncategorized": []}, indent=2)}
+                                    {json.dumps({x.strip(): [] for x in preset_categories} | {"uncategorized": []}, indent=2)}
                                 """),
                             })
                             client = Anthropic(api_key=ANTHROPIC_API_KEY.value)

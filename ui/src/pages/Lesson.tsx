@@ -64,36 +64,38 @@ const Lesson: FC<LessonProps> = ({}) => {
         }
     }, [lesson?.id])
     const editLesson = useCallback(
-        async (id: string, lessonInput: LessonWithResponses) => {
+        async (id: string, lessonInput: LessonWithResponses, skipLocalStateUpdate = false) => {
             if (teacherData) {
                 try {
                     const oldLesson = teacherData?.lessons?.find((l) => l.id === id)
                     if (oldLesson && !isEqual(oldLesson, lessonInput)) {
-                        // Update our local state
-                        let newLessons = [...(teacherData.lessons ?? [])]
-                        const newLesson = {
-                            ...oldLesson,
-                            ...lessonInput,
+                        if (!skipLocalStateUpdate) {
+                            // Update our local state
+                            let newLessons = [...(teacherData.lessons ?? [])]
+                            const newLesson = {
+                                ...oldLesson,
+                                ...lessonInput,
+                            }
+                            newLessons[newLessons.findIndex((l) => l.id === id)] = newLesson
+                            if (lessonInput.deleted) {
+                                newLessons = newLessons.filter((l) => l.id !== id)
+                            }
+                            setLesson(newLesson)
+                            setTeacherData(
+                                (td) =>
+                                    ({
+                                        ...td,
+                                        lessons: newLessons,
+                                    }) as TeacherData,
+                            )
                         }
-                        newLessons[newLessons.findIndex((l) => l.id === id)] = newLesson
-                        if (lessonInput.deleted) {
-                            newLessons = newLessons.filter((l) => l.id !== id)
-                        }
-                        setLesson(newLesson)
-                        setTeacherData(
-                            (td) =>
-                                ({
-                                    ...td,
-                                    lessons: newLessons,
-                                }) as TeacherData,
-                        )
                         // Then update the database
                         await callCloudFunction("putLesson", {
                             ...lessonInput,
                             updated_at: new Date().toISOString(),
                         })
                         // refreshTeacherData()
-                        window.location.reload()
+                        // window.location.reload()
                     }
                 } catch (e) {
                     console.error(e)
@@ -154,7 +156,7 @@ const Lesson: FC<LessonProps> = ({}) => {
     const [chart, setChart] = useState<Chart>()
     useEffect(() => {
         if (chartCanvasRef.current && lesson && lessonPlan && !chart) {
-            const allCategories = uniq(Object.values(lesson?.analysis_by_question_id ?? {}).flatMap((analysis) => Object.keys(analysis.responses_by_category)))
+            const allCategories = uniq(Object.values(lesson?.analysis_by_question_id ?? {}).flatMap((analysis) => Object.keys(analysis?.responses_by_category ?? {})))
             const datasets = Object.keys(lesson?.analysis_by_question_id ?? {})?.map((qid, i) => ({
                 label: `Question ${(lessonPlan?.questions.findIndex(q => q.id === qid) ?? 0) + 1}`,
                 data: allCategories?.map((category) => lesson?.analysis_by_question_id?.[qid]?.responses_by_category?.[category]?.length ?? 0),
@@ -261,7 +263,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                                                 ...lesson,
                                                 deleted: true,
                                             }).then(() => {
-                                                navigate("/")
+                                                window.location.href = "/"
                                             })
                                         }
                                     }}
@@ -283,7 +285,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                                         opacity: copiedLink ? "0.5" : "1",
                                     }}>
                                     <FontAwesomeIcon icon={faLink} />&nbsp;
-                                    {copiedLink ? "Link copied" : "Copy link to lesson"}
+                                    {copiedLink ? "Student link copied" : "Copy student link to lesson"}
                                 </button>
                             </p>
 
@@ -310,7 +312,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                                                 {lessonPlan?.questions.map(q =>
                                                     <td key={q.id} colSpan={4}
                                                         style={{ border: "1px solid #aaa", padding: "10px" }}>
-                                                        {Object.entries(lesson.analysis_by_question_id![q.id].responses_by_category)
+                                                        {Object.entries(lesson.analysis_by_question_id![q.id]?.responses_by_category ?? {})
                                                             .filter(([ _, resps ]) => resps.find(r => r.student_name === student.nickname))
                                                             .map(([cat]) => cat)
                                                             .join(", ")}
@@ -356,9 +358,25 @@ const Lesson: FC<LessonProps> = ({}) => {
                                 <div id="student-responses">
                                     <div style={{ marginBottom: "20px" }}>
                                         {lesson.questions_locked?.includes(q.id)
-                                            ? <span style={{ opacity: "0.5" }}>
-                                                <em>Responses locked</em>
-                                            </span>
+                                            ? <>
+                                                <span style={{ opacity: "0.5" }}>
+                                                    <em>Responses locked</em>
+                                                </span>
+                                                <button
+                                                    disabled={
+                                                        !lesson.responses?.filter(r => r.question_id === q.id) ||
+                                                        lesson.responses.filter(r => r.question_id === q.id).some(r => !r.analysis)
+                                                    }
+                                                    onClick={() => {
+                                                        const newQuestionsLocked = lesson.questions_locked?.filter(qid => qid !== q.id)
+                                                        editLesson(lesson.id, {
+                                                            ...lesson,
+                                                            questions_locked: newQuestionsLocked,
+                                                        })
+                                                    }}>
+                                                    Unlock
+                                                </button>
+                                            </>
                                             : <button
                                                 disabled={
                                                     !lesson.responses?.filter(r => r.question_id === q.id) ||
@@ -395,7 +413,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                                                         ...lesson.analysis_by_question_id,
                                                         [q.id]: newAnalysis,
                                                     },
-                                                })
+                                                }, true)
                                             }}
                                         />}
                                     </div>
