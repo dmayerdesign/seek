@@ -7,10 +7,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 export interface LessonQuestionResponsesProps {
     analysis: LessonQuestionAnalysis
-    onAnalysisChange: (newAnalysis: LessonQuestionAnalysis) => void
+    onReorderResponse: (responseId: string, oldCatName: string, newCatName: string) => void
 }
 
-const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, onAnalysisChange }) => {
+const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, onReorderResponse }) => {
     const responsesByCatName = useMemo(() => analysis.responses_by_category, [analysis.responses_by_category])
     const [responsesByCatNameCtrl, setResponsesByCatNameCtrl] = useState<{ catName: string, responses: LessonResponse[] }[]>()
     useEffect(() => {
@@ -43,16 +43,9 @@ const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, o
             ).on("drop", (el, source) => {
                 const newCatName = source.getAttribute("data-cat-name")!
                 const studentName = el.getAttribute("data-student-name")!
-                const newAnalysis = { ...analysis }
-                newAnalysis.responses_by_category = { ...responsesByCatName }
                 const oldCatName = Object.keys(responsesByCatName).find((catName) => responsesByCatName[catName].find((r) => r.student_name === studentName)) ?? ""
                 const response = responsesByCatName[oldCatName].find((r) => r.student_name === studentName)!
-                newAnalysis.responses_by_category[oldCatName!] = responsesByCatName[oldCatName!].filter((r) => r.student_name !== studentName)
-                newAnalysis.responses_by_category[newCatName] = [
-                    ...newAnalysis.responses_by_category[newCatName],
-                    response,
-                ]
-                onAnalysisChange(newAnalysis)
+                onReorderResponse(response.id, oldCatName, newCatName)
             })
         }
     }, [containerRefsByCatName.current, responsesByCatNameCtrl])

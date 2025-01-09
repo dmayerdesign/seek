@@ -211,6 +211,9 @@ def _getLessons(
     timeout_sec=300,
 )
 def configureDefaultLessons(_: https_fn.Request):
+    _configureDefaultLessons()
+
+def _configureDefaultLessons(teacher_id: str = None):
     template_lesson_ids_str: str = db.collection('admin_configs').document("current").get().to_dict().get("default_lesson_ids")
     template_lesson_ids = template_lesson_ids_str.split(',')
 
@@ -218,6 +221,9 @@ def configureDefaultLessons(_: https_fn.Request):
     teachers_coll = db.collection('teachers')
     teachers = list(teachers_coll.stream())
     for teacher in teachers:
+        if teacher_id is not None and teacher_id != teacher.id:
+            continue
+
         teacher = Teacher(**teacher.to_dict())
         teacher_id = teacher.id
         teacher_ref = teachers_coll.document(teacher_id)
@@ -336,6 +342,7 @@ def putTeacher(request: https_fn.CallableRequest):
                 db.collection('teachers').document(teacher_data.id).set(
                     document_data=teacher_data.__dict__, merge=True
                 )
+                _configureDefaultLessons(teacher_data.id)
                 return "success"
         raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
     raise https_fn.HttpsError(code=401, message="login required")
@@ -498,6 +505,46 @@ def deleteLessonQuestion(request: https_fn.CallableRequest):
                     db.collection('teachers').document(teacher_id).collection('lesson_plans').document(lesson_plan_id).collection('questions').document(question_id).delete()
                     return "success"
                 raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
+
+
+@https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
+def reorderAnalysisCategories(request: https_fn.CallableRequest):
+    if request.auth is not None:
+        user: auth.UserRecord = auth.get_user(request.auth.uid)
+        if user is not None and user.email is not None:
+            teacherMatches = list(db.collection('teachers').where(filter=FieldFilter('email_address', '==', user.email)).stream())
+            if len(teacherMatches) == 1:
+                teacher = TeacherData(**teacherMatches[0].to_dict())
+                teacher_id = teacher.id
+                teacher_ref = db.collection('teachers').document(teacher_id)
+                if request.data is None:
+                    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
+                lesson_id = request.data.get('lesson_id')
+                question_id = request.data.get('question_id')
+                response_id = request.data.get('response_id')
+                old_category = request.data.get('old_category')
+                new_category = request.data.get('new_category')
+                if lesson_id is not None and question_id is not None and response_id is not None and old_category is not None and new_category is not None:
+                    lesson_ref: DocumentReference = teacher_ref.collection('lessons').document(lesson_id)
+                    lesson = Lesson(**lesson_ref.get().to_dict())
+                    if lesson.analysis_by_question_id is not None:
+                        old_cat_responses: list[dict[str, Any]] = lesson.analysis_by_question_id.get(
+                            question_id).get('responses_by_category').get(old_category)
+
+                        resp_to_move: dict[str, Any] = None
+                        for response in old_cat_responses:
+                            if response.get('id') == response_id:
+                                resp_to_move = response
+                                break
+
+                        lesson.analysis_by_question_id[question_id]['responses_by_category'][old_category] = [
+                            r for r in old_cat_responses if r.get('id') != response_id
+                        ]
+                        lesson.analysis_by_question_id[question_id]['responses_by_category'][new_category].append(resp_to_move)
+
+                        lesson_ref.set(document_data=lesson.__dict__, merge=True)
+                        return "success"
+    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
 
 # Lock answers and do analysis, return when done

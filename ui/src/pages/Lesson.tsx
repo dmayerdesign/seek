@@ -104,6 +104,21 @@ const Lesson: FC<LessonProps> = ({}) => {
         },
         [teacherData, callCloudFunction],
     )
+    const reorderAnalysisCategories = useCallback(async (
+        lessonId: string,
+        questionId: string,
+        responseId: string,
+        oldCategory: string,
+        newCategory: string,
+    ) => {
+        await callCloudFunction("reorderAnalysisCategories", {
+            lesson_id: lessonId,
+            question_id: questionId,
+            response_id: responseId,
+            old_category: oldCategory,
+            new_category: newCategory,
+        })
+    }, [callCloudFunction])
     const responsesByQID = useMemo(() => {
         if (lesson?.responses) {
             return groupBy(lesson.responses, (r) => r.question_id)
@@ -313,7 +328,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                                                     <td key={q.id} colSpan={4}
                                                         style={{ border: "1px solid #aaa", padding: "10px" }}>
                                                         {Object.entries(lesson.analysis_by_question_id![q.id]?.responses_by_category ?? {})
-                                                            .filter(([ _, resps ]) => resps.find(r => r.student_name === student.nickname))
+                                                            .filter(([ _, resps ]) => resps?.find(r => r.student_name === student.nickname))
                                                             .map(([cat]) => cat)
                                                             .join(", ")}
                                                     </td>
@@ -406,14 +421,24 @@ const Lesson: FC<LessonProps> = ({}) => {
                                         {lesson.analysis_by_question_id?.[q.id]?.responses_by_category &&
                                         <LessonQuestionResponses
                                             analysis={lesson.analysis_by_question_id![q.id]}
-                                            onAnalysisChange={(newAnalysis) => {
-                                                editLesson(lesson.id, {
-                                                    ...lesson,
-                                                    analysis_by_question_id: {
-                                                        ...lesson.analysis_by_question_id,
-                                                        [q.id]: newAnalysis,
-                                                    },
-                                                }, true)
+                                            onReorderResponse={(responseId, oldCatName, newCatName) => {
+                                                const analysis = lesson.analysis_by_question_id![q.id]
+                                                const newAnalysis = { ...analysis }
+                                                newAnalysis.responses_by_category = { ...analysis.responses_by_category }
+                                                const response = analysis.responses_by_category[oldCatName].find((r) => r.id === responseId)!
+                                                newAnalysis.responses_by_category[oldCatName!] = analysis.responses_by_category[oldCatName!].filter((r) => r.id !== responseId)
+                                                newAnalysis.responses_by_category[newCatName] = [
+                                                    ...newAnalysis.responses_by_category[newCatName],
+                                                    response,
+                                                ]
+                                                reorderAnalysisCategories(lesson.id, q.id, responseId, oldCatName, newCatName)
+                                                // editLesson(lesson.id, {
+                                                //     ...lesson,
+                                                //     analysis_by_question_id: {
+                                                //         ...lesson.analysis_by_question_id,
+                                                //         [q.id]: newAnalysis,
+                                                //     },
+                                                // }, true)
                                             }}
                                         />}
                                     </div>
