@@ -359,10 +359,10 @@ const Lesson: FC<LessonProps> = ({}) => {
                                     <div style={{ marginBottom: "20px" }}>
                                         {lesson.questions_locked?.includes(q.id)
                                             ? <>
-                                                <span style={{ opacity: "0.5" }}>
+                                                <span style={{ opacity: "0.5", marginRight: "20px" }}>
                                                     <em>Responses locked</em>
                                                 </span>
-                                                <button
+                                                {/* <button
                                                     disabled={
                                                         !lesson.responses?.filter(r => r.question_id === q.id) ||
                                                         lesson.responses.filter(r => r.question_id === q.id).some(r => !r.analysis)
@@ -375,7 +375,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                                                         })
                                                     }}>
                                                     Unlock
-                                                </button>
+                                                </button> */}
                                             </>
                                             : <button
                                                 disabled={

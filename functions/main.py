@@ -695,13 +695,13 @@ def putLesson(request: https_fn.CallableRequest):
                                     
                                     Make sure every single student is included at least once, and remember that a response might belong to more than one category.
                                     
-                                    Respond with the JSON object ONLY, and no other text.
+                                    Make sure each category is distinct.
 
-                                    Your response should be output in JSON format.
-
+                                    Your response should be output in JSON format. Respond with the JSON object ONLY, and no other text.
+                                    
                                     Use this object as a starting point, and simply populate each array with the students' names belonging in that category:
-                                                  
-                                    {json.dumps({x.strip(): [] for x in preset_categories} | {"uncategorized": []}, indent=2)}
+                                    
+                                    {json.dumps({x.strip(): [] for x in preset_categories} | {"No category": []}, indent=2)}
                                 """),
                             })
                             client = Anthropic(api_key=ANTHROPIC_API_KEY.value)
