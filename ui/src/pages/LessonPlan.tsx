@@ -237,7 +237,7 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 		<div className="seek-page">
 			<div className="page-content">{!lessonPlan || !lessonPlanCtrl || !teacherData
 				? <div>
-					<p>Loading...</p>
+					<p>Loading (please be patient)...</p>
 				</div>
 				: <div>
 					<section className="faint-bg">
@@ -335,12 +335,12 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 													<div>
 														<p>
 															If you want, enter below one or more categories of response
-															that you expect to see, separated by commas or new lines.
+															that you expect to see, separated by commas. Otherwise, the
+															app will make its best effort to categorize reasonably.
 														</p>
 														<br />
 														<textarea
-															placeholder={"Enter the expected response categories here. "+
-																"With each category, please include a short paragraph that describes it."}
+															placeholder={"Enter a comma-separated list of categories"}
 															className="inline-input"
 															style={{ width: "100%" }}
 															value={lessonQuestionsCtrl[q.id].categorization_guidance}
@@ -457,6 +457,7 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 																		<FontAwesomeIcon icon={faMagicWandSparkles} />&nbsp;
 																		Materials to help the model&rsquo;s analysis
 																	</h5>
+																	<p>e.g. textbook materials, categorization guidance</p>
 																	<ul className="file-list">
 																		{q.context_material_urls?.map((url) => {
 																			const decodedUrl = decodeURIComponent(url)

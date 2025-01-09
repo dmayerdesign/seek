@@ -354,7 +354,7 @@ const TeacherHome: FC = () => {
 				) : user === undefined ? (
 					<>
 						<div className="page-content">
-							<p>Loading...</p>
+							<p>Loading (please be patient)...</p>
 						</div>
 					</>
 				) : user === null ? (
@@ -487,7 +487,7 @@ const TeacherHome: FC = () => {
 					<div className="page-content">
 						{teacherData === undefined ? (
 							<>
-								<p>Loading...</p>
+								<p>Loading (please be patient)...</p>
 							</>
 						) : (
 							<>

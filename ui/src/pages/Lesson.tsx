@@ -44,6 +44,11 @@ const Lesson: FC<LessonProps> = ({}) => {
     const { id: lessonId } = useParams()
     const [lesson, setLesson] = useState<LessonWithResponses>()
     const [lessonPlan, setLessonPlan] = useState<LessonPlanWithQuestions>()
+    const thisClass = useMemo(() => {
+        if (teacherData?.classes && lesson) {
+            return teacherData.classes.find(c => c.id === lesson.class_id)
+        }
+    }, [teacherData?.classes, lesson])
     useEffect(() => {
         if (teacherData && lessonId && !lesson) {
             callCloudFunction<LessonWithResponses[]>("getLessons", {}).then((_lessons) => {
@@ -114,7 +119,6 @@ const Lesson: FC<LessonProps> = ({}) => {
     }, [lesson?.responses])
     const studentNamesNotFinishedByQID = useMemo(() => {
         if (teacherData?.classes) {
-            const thisClass = teacherData.classes.find(c => c.id === lesson?.class_id)
             return lesson?.lesson_plan?.questions.reduce((acc, q) => {
                 acc[q.id] = thisClass?.students?.filter(s => !studentNamesFinishedByQID?.[q.id]?.includes(s.nickname))
                     ?.map(s => s.nickname) ?? []
@@ -122,7 +126,7 @@ const Lesson: FC<LessonProps> = ({}) => {
             }, {} as Record<string, string[]>) ?? {}
         }
         return {}
-    }, [lesson?.responses])
+    }, [teacherData, lesson, thisClass])
     const studentNamesStartedNotFinishedByQID = useMemo(() => {
         return Object.entries(studentNamesFinishedByQID).reduce((acc, [qid, studentNamesFinished]) => {
             acc[qid] = lesson?.student_names_started?.filter((sn) => !studentNamesFinished?.includes(sn)) ?? []
@@ -216,7 +220,7 @@ const Lesson: FC<LessonProps> = ({}) => {
         <div className="seek-page">
             <div className="page-content">{!lesson
                 ? <div>
-                    <p>Loading...</p>
+                    <p>Loading (please be patient)...</p>
                 </div>
                 : <div>
                     <section className="faint-bg">
@@ -285,9 +289,36 @@ const Lesson: FC<LessonProps> = ({}) => {
 
                             <hr />
 
-                            {!!lesson.analysis_by_question_id && <>
+                            {!!lesson.analysis_by_question_id && !!lessonPlan?.questions && <>
                                 <div className="charts" style={{ width: "100%", height: "300px" }}>
                                     <canvas id="chart-canvas" ref={chartCanvasRef}></canvas>
+                                </div>
+                                <div style={{ margin: "30px 0 40px" }}>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th colSpan={4} style={{ color: "#444" }}>Student</th>
+                                                {lessonPlan?.questions.map((q, i) =>
+                                                    <th colSpan={4} style={{ color: "#444" }} key={q.id}>Question {i + 1}</th>)}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {thisClass?.students?.map((student) => <tr key={student.nickname}>
+                                                <td colSpan={4} style={{ border: "1px solid #aaa", padding: "10px" }}>
+                                                    {student.nickname}
+                                                </td>
+                                                {lessonPlan?.questions.map(q =>
+                                                    <td key={q.id} colSpan={4}
+                                                        style={{ border: "1px solid #aaa", padding: "10px" }}>
+                                                        {Object.entries(lesson.analysis_by_question_id![q.id].responses_by_category)
+                                                            .filter(([ _, resps ]) => resps.find(r => r.student_name === student.nickname))
+                                                            .map(([cat]) => cat)
+                                                            .join(", ")}
+                                                    </td>
+                                                )}
+                                            </tr>)}
+                                        </tbody>
+                                    </table>
                                 </div>
                                 <hr />
                             </>}
@@ -350,7 +381,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                                     {lesson.questions_locked?.includes(q.id) &&
                                     !!lesson.responses?.length &&
                                     !lesson.analysis_by_question_id?.[q.id]?.responses_by_category && <>
-                                        <p style={{ marginBottom: "30px" }}><em>Analyzing...</em></p>
+                                        <p style={{ marginBottom: "30px" }}><em>Analyzing (may take up to a minute &mdash; do not leave the page)...</em></p>
                                     </>}
 
                                     <div style={{ marginTop: "-15px" }}>
