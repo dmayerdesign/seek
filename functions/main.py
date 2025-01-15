@@ -81,13 +81,14 @@ def getTeacherData(request: https_fn.CallableRequest):
             teacher.lessons = []
             if len(lesson_docs) > 0:
                 teacher.lessons = [Lesson(**lesson_docs[i].to_dict()) for i in range(len(lesson_docs))]
+                teacher.lessons.sort(key=lambda l: l.created_at)
                 for lesson in teacher.lessons:
                     responses_coll: CollectionReference = lessons_coll.document(lesson.id).collection('responses')
                     responses = list(responses_coll.stream())
                     if len(responses) > 0:
                         lesson.responses = [LessonResponse(**responses[i].to_dict()) for i in range(len(responses))]
                         # Sort by created_at
-                        lesson.responses.sort(key=lambda response: response.created_at)
+                        lesson.responses.sort(key=lambda response: response.created_at, reverse=True)
 
             return teacher
 
@@ -198,6 +199,7 @@ def _getLessons(
                     lesson.class_data.students = [Student(**students[i].to_dict()) for i in range(len(students))]
                     # Sort students by name
                     lesson.class_data.students.sort(key=lambda student: student.created_at)
+
             return teacher.lessons
 
 
@@ -209,6 +211,9 @@ def _getLessons(
     timeout_sec=300,
 )
 def configureDefaultLessons(_: https_fn.Request):
+    _configureDefaultLessons()
+
+def _configureDefaultLessons(teacher_id: str = None):
     template_lesson_ids_str: str = db.collection('admin_configs').document("current").get().to_dict().get("default_lesson_ids")
     template_lesson_ids = template_lesson_ids_str.split(',')
 
@@ -216,6 +221,9 @@ def configureDefaultLessons(_: https_fn.Request):
     teachers_coll = db.collection('teachers')
     teachers = list(teachers_coll.stream())
     for teacher in teachers:
+        if teacher_id is not None and teacher_id != teacher.id:
+            continue
+
         teacher = Teacher(**teacher.to_dict())
         teacher_id = teacher.id
         teacher_ref = teachers_coll.document(teacher_id)
@@ -253,36 +261,34 @@ def configureDefaultLessons(_: https_fn.Request):
             template_responses_coll: CollectionReference = template_lesson_ref.collection('responses')
             template_responses_snap: list[DocumentSnapshot] = list(template_responses_coll.stream())
             template_responses = [LessonResponse(**response.to_dict()) for response in template_responses_snap]
-            resp_id_to_img_url: dict[str, str] = {}
+            teacher_responses_coll: CollectionReference = teacher_lessons_coll.document(template_lesson_id).collection('responses')
+            # DELETE ALL EXISTING RESPONSES
+            teacher_responses_existing = list(teacher_responses_coll.stream())
+            for tre in teacher_responses_existing:
+                teacher_responses_coll.document(tre.id).delete()
+            # resp_id_to_img_url: dict[str, str] = {}
             for template_response in template_responses:
-                teacher_responses_coll: CollectionReference = teacher_lessons_coll.document(template_lesson_id).collection('responses')
                 tr_data = template_response.__dict__
                 tr_data['teacher_email'] = teacher.email_address
-                # Convert the base64 images into uploaded images
-                resp_id_to_img_url[template_response.id] = template_response.response_image_url
-                if template_response.response_has_drawing and (
-                    template_response.response_image_base64 is not None and template_response.response_image_base64 != "" and (
-                        template_response.response_image_url is None or template_response.response_image_url == "")
-                ):
-                    if template_response.id not in resp_id_to_img_url or not resp_id_to_img_url[template_response.id]:
-                        # client = storage._StorageClient.from_app(app=app)
-                        blb = bucket.blob(f"default-teacher/student-responses/{template_response.id}_drawing_{datetime.now().isoformat()}.png")
-                        blb.upload_from_string(
-                            # client=client,
-                            client=bucket.client,
-                            data=base64.b64decode(
-                                template_response.response_image_base64.replace("data:image/png;base64,", "")
-                            ),
-                            content_type="image/png",
-                        )
-                        blb.make_public()
-                        resp_id_to_img_url[template_response.id] = blb.public_url
-                        # resp_id_to_img_url[template_response.id] = blb.generate_signed_url(
-                        #     expiration=datetime.now() + timedelta(weeks=1040),
-                        #     client=client,
-                        # )
-                    tr_data['response_image_url'] = resp_id_to_img_url[template_response.id]
-                    tr_data['response_image_base64'] = None
+                # # Convert the base64 images into uploaded images
+                # resp_id_to_img_url[template_response.id] = template_response.response_image_url
+                # if template_response.response_has_drawing and (
+                #     template_response.response_image_base64 is not None and template_response.response_image_base64 != "" and (
+                #         template_response.response_image_url is None or template_response.response_image_url == "")
+                # ):
+                #     if template_response.id not in resp_id_to_img_url or not resp_id_to_img_url[template_response.id]:
+                #         blb = bucket.blob(f"default-teacher/student-responses/{template_response.id}_drawing_{datetime.now().isoformat()}.png")
+                #         blb.upload_from_string(
+                #             client=bucket.client,
+                #             data=base64.b64decode(
+                #                 template_response.response_image_base64.replace("data:image/png;base64,", "")
+                #             ),
+                #             content_type="image/png",
+                #         )
+                #         blb.make_public()
+                #         resp_id_to_img_url[template_response.id] = blb.public_url
+                #     tr_data['response_image_url'] = resp_id_to_img_url[template_response.id]
+                #     tr_data['response_image_base64'] = None
                 teacher_responses_coll.document(template_response.id).set(document_data=tr_data)
 
             # In the same way, add the lesson plan if it's not already there
@@ -336,6 +342,7 @@ def putTeacher(request: https_fn.CallableRequest):
                 db.collection('teachers').document(teacher_data.id).set(
                     document_data=teacher_data.__dict__, merge=True
                 )
+                _configureDefaultLessons(teacher_data.id)
                 return "success"
         raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
     raise https_fn.HttpsError(code=401, message="login required")
@@ -500,6 +507,46 @@ def deleteLessonQuestion(request: https_fn.CallableRequest):
                 raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
 
+@https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
+def reorderAnalysisCategories(request: https_fn.CallableRequest):
+    if request.auth is not None:
+        user: auth.UserRecord = auth.get_user(request.auth.uid)
+        if user is not None and user.email is not None:
+            teacherMatches = list(db.collection('teachers').where(filter=FieldFilter('email_address', '==', user.email)).stream())
+            if len(teacherMatches) == 1:
+                teacher = TeacherData(**teacherMatches[0].to_dict())
+                teacher_id = teacher.id
+                teacher_ref = db.collection('teachers').document(teacher_id)
+                if request.data is None:
+                    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
+                lesson_id = request.data.get('lesson_id')
+                question_id = request.data.get('question_id')
+                response_id = request.data.get('response_id')
+                old_category = request.data.get('old_category')
+                new_category = request.data.get('new_category')
+                if lesson_id is not None and question_id is not None and response_id is not None and old_category is not None and new_category is not None:
+                    lesson_ref: DocumentReference = teacher_ref.collection('lessons').document(lesson_id)
+                    lesson = Lesson(**lesson_ref.get().to_dict())
+                    if lesson.analysis_by_question_id is not None:
+                        old_cat_responses: list[dict[str, Any]] = lesson.analysis_by_question_id.get(
+                            question_id).get('responses_by_category').get(old_category)
+
+                        resp_to_move: dict[str, Any] = None
+                        for response in old_cat_responses:
+                            if response.get('id') == response_id:
+                                resp_to_move = response
+                                break
+
+                        lesson.analysis_by_question_id[question_id]['responses_by_category'][old_category] = [
+                            r for r in old_cat_responses if r.get('id') != response_id
+                        ]
+                        lesson.analysis_by_question_id[question_id]['responses_by_category'][new_category].append(resp_to_move)
+
+                        lesson_ref.set(document_data=lesson.__dict__, merge=True)
+                        return "success"
+    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
+
+
 # Lock answers and do analysis, return when done
 @https_fn.on_call(cors=options.CorsOptions(cors_origins=["*"]))
 def putLesson(request: https_fn.CallableRequest):
@@ -534,7 +581,9 @@ def putLesson(request: https_fn.CallableRequest):
                     print("lesson saved")
 
                     # If the lesson existed (this is an update, not a create), check if we're going from not locked to locked
-                    if old_lesson is not None and len(new_lesson.questions_locked) > len(old_lesson.questions_locked):
+                    num_questions_locked_before = len(old_lesson.questions_locked) if old_lesson is not None and old_lesson.questions_locked is not None else 0
+                    num_questions_locked_after = len(new_lesson.questions_locked) if new_lesson.questions_locked is not None else 0
+                    if old_lesson is not None and num_questions_locked_after > num_questions_locked_before:
                         responses: List[DocumentSnapshot] = list(lesson_ref.collection('responses').stream())
 
                         # attempts_remaining = 15
@@ -558,134 +607,149 @@ def putLesson(request: https_fn.CallableRequest):
                             raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="no responses to analyze")
                         
                         # Then, analyze the lesson overall
-                        attempts_remaining = 3
-                        while attempts_remaining > 0:
-                            attempts_remaining -= 1
-                            try:
-                                lesson = Lesson(**lesson_ref.get().to_dict())
-                                lesson_plan_ref: DocumentReference = teacher_ref.collection('lesson_plans').document(lesson.lesson_plan_id)
-                                questions_ref: CollectionReference = lesson_plan_ref.collection('questions')
-                                lesson_questions = list(questions_ref.stream())
-                                lesson_questions = [LessonQuestion(**lesson_questions[i].to_dict()) for i in range(len(lesson_questions))]
-                                analysis_by_question_id: dict[str, Dict[str, Any]] = {}
-                                preset_categories: list[str] = []
-                                for question in lesson_questions:
+                        lesson = Lesson(**lesson_ref.get().to_dict())
+                        lesson_plan_ref: DocumentReference = teacher_ref.collection('lesson_plans').document(lesson.lesson_plan_id)
+                        questions_ref: CollectionReference = lesson_plan_ref.collection('questions')
+                        lesson_questions = list(questions_ref.stream())
+                        lesson_questions = [LessonQuestion(**lesson_questions[i].to_dict()) for i in range(len(lesson_questions))]
+                        analysis_by_question_id: dict[str, Dict[str, Any]] = {}
+                        preset_categories: list[str] = []
+                        for question in lesson_questions:
+                            if new_lesson.questions_locked is None or question.id not in new_lesson.questions_locked:
+                                continue
 
-                                    responses_to_question = [response for response in responses if response.to_dict().get('question_id') == question.id]
+                            responses_to_question = [response for response in responses if response.to_dict().get('question_id') == question.id]
 
-                                    # If no responses, skip
-                                    if len(responses_to_question) == 0:
-                                        continue
+                            # If no responses, skip
+                            if len(responses_to_question) == 0:
+                                continue
 
-                                    # If the analysis is already done, skip
-                                    if lesson.analysis_by_question_id is not None and question.id in lesson.analysis_by_question_id and lesson.analysis_by_question_id[question.id] is not None:
-                                        analysis = lesson.analysis_by_question_id[question.id]
-                                        preset_categories = analysis.responses_by_category.keys()
-                                        continue
+                            # If the analysis is already done, skip
+                            if lesson.analysis_by_question_id is not None and question.id in lesson.analysis_by_question_id and lesson.analysis_by_question_id[question.id] is not None:
+                                analysis_already_done: Dict[str, Any] = lesson.analysis_by_question_id[question.id]
+                                responses_by_cat: dict[str, Any] = analysis_already_done.get('responses_by_category')
+                                preset_categories = responses_by_cat.keys()
+                                continue
 
-                                    llm_messages = []
-                                    llm_messages.append({
-                                        "role": "user",
-                                        "content": dedent(f"""
-                                            You are an experienced high school teacher, and my assistant for this lesson.
-                                            You also have experience coding in JSON and are a stickler for formatting.
-                                            I asked my high school students the following question:
-                                            "{question.body_text}"
-                                        """),
+                            llm_messages = []
+                            llm_messages.append({
+                                "role": "user",
+                                "content": dedent(f"""
+                                    You are an experienced high school teacher, and my assistant for this lesson.
+                                    You also have experience coding in JSON and are a stickler for formatting.
+                                    I asked my high school students the following question:
+                                    "{question.body_text}"
+                                """),
+                            })
+
+                            # Add context (supporting materials) if any
+                            ctx_materials_message_content = []
+                            for ctx_material_url in question.context_material_urls:
+                                file_name: str = ctx_material_url.split('/')[-1].split('?')[0]
+                                file_ext: str = file_name.split('.')[-1]
+                                file_ext_lower = file_ext.lower()
+                                if file_ext_lower in ['pdf']:
+                                    ctx_materials_message_content.append({
+                                        "type": "document",
+                                        "source": {
+                                            "type": "base64",
+                                            "media_type": "application/pdf",
+                                            "data": get_as_base64(ctx_material_url),
+                                        },
                                     })
+                                elif file_ext_lower in ['png', 'jpg', 'jpeg']:
+                                    if file_ext_lower == 'jpg':
+                                        file_ext_lower = 'jpeg'
+                                    ctx_materials_message_content.append({
+                                        "type": "image",
+                                        "source": {
+                                            "type": "base64",
+                                            "media_type": f"image/{file_ext_lower}",
+                                            "data": get_as_base64(ctx_material_url),
+                                        },
+                                    })
+                            if len(ctx_materials_message_content) > 0:
+                                ctx_materials_message_content = [{
+                                    "type": "text",
+                                    "text": "The following supporting materials are relevant to the question:",
+                                }] + ctx_materials_message_content
+                                llm_messages.append({
+                                    "role": "user",
+                                    "content": ctx_materials_message_content,
+                                })
 
-                                    # Add context (supporting materials) if any
-                                    ctx_materials_message_content = []
-                                    for ctx_material_url in question.context_material_urls:
-                                        file_name: str = ctx_material_url.split('/')[-1].split('?')[0]
-                                        file_ext: str = file_name.split('.')[-1]
-                                        file_ext_lower = file_ext.lower()
-                                        if file_ext_lower in ['pdf']:
-                                            ctx_materials_message_content.append({
-                                                "type": "document",
-                                                "source": {
-                                                    "type": "base64",
-                                                    "media_type": "application/pdf",
-                                                    "data": get_as_base64(ctx_material_url),
-                                                },
-                                            })
-                                        elif file_ext_lower in ['png', 'jpg', 'jpeg']:
-                                            if file_ext_lower == 'jpg':
-                                                file_ext_lower = 'jpeg'
-                                            ctx_materials_message_content.append({
-                                                "type": "image",
-                                                "source": {
-                                                    "type": "base64",
-                                                    "media_type": f"image/{file_ext_lower}",
-                                                    "data": get_as_base64(ctx_material_url),
-                                                },
-                                            })
-                                    if len(ctx_materials_message_content) > 0:
-                                        ctx_materials_message_content = [{
-                                            "type": "text",
-                                            "text": "The following supporting materials are relevant to the question:",
-                                        }] + ctx_materials_message_content
-                                        llm_messages.append({
-                                            "role": "user",
-                                            "content": ctx_materials_message_content,
-                                        })
-
-                                    # Add categorization_guidance if any
-                                    if len(preset_categories) > 0:
-                                        llm_messages.append({
-                                            "role": "user",
-                                            "content": [{
-                                                "type": "text",
-                                                "text": "Please use the following categories in your analysis:\n\n"+
-                                                    ", ".join(preset_categories)+"\n\n"+
-                                                    "Consider ALL of these carefully when deciding how to categorize each student's response.",
-                                            }],
-                                        })
-                                    elif question.categorization_guidance is not None:
-                                        llm_messages.append({
-                                            "role": "user",
-                                            "content": [{
-                                                "type": "text",
-                                                "text": "Please use the following as guidance for how to categorize responses:\n\n"+
-                                                    question.categorization_guidance+"\n\n"+
-                                                    "Consider ALL of the categories mentioned here carefully when deciding how to categorize each student's response.",
-                                            }],
-                                        })
-
-                                    # Add the student responses
-                                    lesson_responses_message_content = [{
+                            # Add categorization_guidance if any
+                            if len(preset_categories) > 0:
+                                print("Got preset categories from the previous question:", preset_categories)
+                                llm_messages.append({
+                                    "role": "user",
+                                    "content": [{
                                         "type": "text",
-                                        "text": "Now here are my students' responses:", # TODO: Add anti-prompt-injection language?
-                                    }]
-                                    for resp in responses_to_question:
-                                        lesson_responses_message_content.append({
-                                            "type": "text",
-                                            "text": f"{resp.get('student_name')} answered: {resp.get('analysis.response_summary')}",
-                                        })
-                                    llm_messages.append({
-                                        "role": "user",
-                                        "content": lesson_responses_message_content
-                                    })
+                                        "text": "Please use all of the following categories in your analysis:\n\n"+
+                                            ", ".join(preset_categories)+"\n\n"+
+                                            "Consider ALL of these carefully when deciding how to categorize each student's response. It is encouraged to assign a multiple categories to a response if and only if the response fits the requirements of more than one category.",
+                                    }],
+                                })
+                            elif question.categorization_guidance is not None:
+                                preset_cats_str = question.categorization_guidance
+                                preset_cats_split_by_comma = preset_cats_str.split(",")
+                                preset_cats_split_by_newline = preset_cats_str.split("\n")
+                                preset_categories = preset_cats_split_by_comma if len(preset_cats_split_by_comma) > len(preset_cats_split_by_newline) else preset_cats_split_by_newline
+                                print("Got preset categories from the categorization guidance:", preset_categories)
+                                llm_messages.append({
+                                    "role": "user",
+                                    "content": [{
+                                        "type": "text",
+                                        "text": "Please use all of the following categories in your analysis:\n\n"+
+                                            f"{preset_cats_str}\n\n"+
+                                            "Consider ALL of these carefully when deciding how to categorize each student's response. It is encouraged to assign a multiple categories to a response if and only if the response fits the requirements of more than one category.",
+                                    }],
+                                })
 
-                                    # Get the analysis
-                                    llm_messages.append({
-                                        "role": "user",
-                                        "content": dedent(f"""
-                                            As my assistant, you have one task that will help me administer this lesson: sort the students' responses into categories.
-                                            
-                                            The categories will be used to track how students' understanding of the concept evolves over time, sometimes moving from one category to another as their understanding deepens.
-                                            
-                                            Do your best to categorize in a way that will help the students draw connections between each other's explanations.
-                                            
-                                            Pay extra attention to any guidance I have already provided on which categories to use. I expect all of my category suggestions to be considered thoughtfully.
-                                            
-                                            Your next response should be output in JSON format, as a JSON array structured as follows: each element must be an object with 2 fields, "category" and "student_name", each containing a string.
-                                            Make sure every single student is included in the array at least once. You may assign a student to more than one category if you feel it is appropriate based on their response.
-                                            
-                                            Respond with the JSON array ONLY, and no other text.
-                                        """),
-                                    })
-                                    client = Anthropic(api_key=ANTHROPIC_API_KEY.value)
+                            # Add the student responses
+                            lesson_responses_message_content = [{
+                                "type": "text",
+                                "text": "Now here are my students' responses:", # TODO: Add anti-prompt-injection language?
+                            }]
+                            for resp in responses_to_question:
+                                lesson_responses_message_content.append({
+                                    "type": "text",
+                                    "text": f"{resp.get('student_name')} answered: {resp.get('analysis.response_summary')}",
+                                })
+                            llm_messages.append({
+                                "role": "user",
+                                "content": lesson_responses_message_content
+                            })
+
+                            # Get the analysis
+                            llm_messages.append({
+                                "role": "user",
+                                "content": dedent(f"""
+                                    You are a teaching assistant who is experienced in high school level topics. As my assistant, you have one task that will help me administer this lesson: sort the students' responses into categories.
+                                    
+                                    The categories will be used to track how students' understanding of the concept evolves over time, sometimes moving from one category to another as their understanding deepens. Sometimes expanding the understanding from one category to two or more.
+                                    
+                                    Do your best to categorize in a way that will help the students draw connections between each other's explanations.
+                                    
+                                    Pay extra attention to any guidance I have already provided on which categories to use. I expect all of my category suggestions to be considered thoughtfully.
+                                    
+                                    Make sure every single student is included at least once, and remember that a response might belong to more than one category.
+                                    
+                                    Make sure each category is distinct.
+
+                                    Your response should be output in JSON format. Respond with the JSON object ONLY, and no other text.
+                                    
+                                    Use this object as a template, and simply populate each array with the students' names belonging in that category:
+                                    
+                                    {json.dumps({x.strip().capitalize(): [] for x in preset_categories} | {"No category": []}, indent=2)}
+                                """),
+                            })
+                            client = Anthropic(api_key=ANTHROPIC_API_KEY.value)
+
+                            attempts_remaining = 3
+                            while attempts_remaining > 0:
+                                attempts_remaining -= 1
+                                try:
                                     message = client.messages.create(
                                         model="claude-3-5-sonnet-20240620",
                                         max_tokens=1024,
@@ -694,9 +758,9 @@ def putLesson(request: https_fn.CallableRequest):
                                     print("Claude responded with content:")
                                     print(message.content)
                                     message_text = message.content[0].text
-                                    if not message_text.startswith("["):
-                                        message_text = message_text.split("[")[1].split("]")[0]
-                                    analyses_raw: list[dict[str, str]] = json.loads(message_text)
+                                    if not message_text.startswith("{"):
+                                        message_text = message_text.split("{")[1].split("}")[0]
+                                    analyses_raw: dict[str, list[str]] = json.loads(message_text)
 
                                     # Map the analysis to the LessonQuestionAnalysis object
                                     responses_by_student_name: dict[str, LessonResponse] = {}
@@ -714,37 +778,38 @@ def putLesson(request: https_fn.CallableRequest):
                                                 ),
                                                 content_type="image/png",
                                             )
-                                            resp_dict['response_image_url'] = blb._get_download_url(
-                                                client=bucket.client
-                                            )
+                                            blb.make_public()
+                                            resp_dict['response_image_url'] = blb.public_url
                                         resp_dict['response_image_base64'] = None
                                         responses_by_student_name[resp.get('student_name')] = LessonResponse(**resp_dict)
                                     responses_by_category: dict[str, list[LessonResponse]] = {}
-                                    for analysis_raw in analyses_raw:
-                                        category = analysis_raw.get('category').capitalize()
-                                        student_name = analysis_raw.get('student_name')
+                                    for cat, students in analyses_raw.items():
+                                        category = cat.strip().capitalize()
                                         if category not in responses_by_category:
                                             responses_by_category[category] = []
-                                        responses_by_category[category].append(
-                                            responses_by_student_name.get(student_name).__dict__
-                                        )
+                                        for student in students:
+                                            responses_by_category[category].append(
+                                                responses_by_student_name.get(student).__dict__
+                                            )
                                     analysis = LessonQuestionAnalysis(
                                         question_id=question.id,
                                         responses_by_category=responses_by_category,
                                     )
                                     # Add it to analysis_by_question_id on the Lesson object
                                     analysis_by_question_id[analysis.question_id] = analysis.__dict__
+                                    break
+                                except Exception as e:
+                                    print(e)
+                                    if attempts_remaining == 0:
+                                        raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="analysis failed")
+                                    else:
+                                        print("retrying")
 
-                                # Back at the Lesson level -- save the new analysis_by_question_id
-                                lesson_ref.set(
-                                    document_data={"analysis_by_question_id": analysis_by_question_id},
-                                    merge=True,
-                                )
-                                break
-                            except Exception as e:
-                                print(e)
-                                if attempts_remaining == 0:
-                                    raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="analysis failed")
+                        # Back at the Lesson level -- save the new analysis_by_question_id
+                        lesson_ref.set(
+                            document_data={"analysis_by_question_id": analysis_by_question_id},
+                            merge=True,
+                        )
 
                     # Whether this was an update or a create, return the new lesson
                     return Lesson(**lesson_ref.get().to_dict())
@@ -806,12 +871,10 @@ def putLessonResponse(request: https_fn.Request):
             responses_coll.document(lesson_resp_data.id).set(document_data=lesson_resp_data.__dict__, merge=True)
 
             # In the background, use the LLM to summarize each response for easier use later
-            asyncio.new_event_loop().run_until_complete(
-                analyze_lesson_response(
-                    question_data,
-                    responses_coll.document(lesson_resp_data.id),
-                    lesson_resp_data,
-                )
+            analyze_lesson_response(
+                question_data,
+                responses_coll.document(lesson_resp_data.id),
+                lesson_resp_data,
             )
 
             return https_fn.Response(
@@ -847,7 +910,7 @@ def postStudentNameStarted(request: https_fn.Request):
     raise https_fn.HttpsError(code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION, message="invalid request")
 
 
-async def analyze_lesson_response(
+def analyze_lesson_response(
     question_data: LessonQuestion,
     lesson_response_doc_ref: DocumentReference,
     lesson_resp_data: LessonResponse,
@@ -899,7 +962,7 @@ async def analyze_lesson_response(
         print("Claude responded with content:")
         print(message.content)
         # Append it to the summary
-        summary = summary + "\n\n" if len(summary) > 0 else summary
+        summary = summary + "\n\n" if len(summary) > 0 else ""
         summary = summary + message.content[0].text
 
     # Save the summary

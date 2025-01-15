@@ -68,7 +68,7 @@ const AppForStudents: FC = () => {
 			{!lesson
 				? <div className="seek-page">
 					<div className="page-content">
-						<p>Loading...</p>
+						<p>Loading (please be patient)...</p>
 					</div>
 				</div>
 				: <>

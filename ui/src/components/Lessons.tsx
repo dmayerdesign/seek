@@ -5,6 +5,7 @@ import { Dispatch, FC, SetStateAction, useCallback, useContext, useEffect, useMe
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { AppCtx, Class, LessonPlan, LessonWithResponses, TeacherData } from "../data-model";
+import { parseISO } from "date-fns";
 
 export interface LessonsProps {
     teacherData: TeacherData
@@ -21,13 +22,15 @@ const Lessons: FC<LessonsProps> = ({ teacherData, setTeacherData, refreshTeacher
 	useEffect(() => {
 		if (teacherData && teacherData.lessons) {
 			setLessonsCtrl(
-				teacherData.lessons.reduce(
-					(acc, lp) => {
-						if (!lp.deleted) acc[lp.id] = lp
-						return acc
-					},
-					{} as Record<string, LessonWithResponses>,
-				),
+				teacherData.lessons
+					.sort((a, b) => a.created_at < b.created_at ? 1 : -1)
+					.reduce(
+						(acc, lp) => {
+							if (!lp.deleted) acc[lp.id] = lp
+							return acc
+						},
+						{} as Record<string, LessonWithResponses>,
+					),
 			)
 		}
 	}, [teacherData])
@@ -133,12 +136,16 @@ const Lessons: FC<LessonsProps> = ({ teacherData, setTeacherData, refreshTeacher
 			<h2>All lessons</h2>
 			<hr />
 			{teacherData?.lessons?.map((l) => lessonsCtrl[l.id] && (
-				<div key={l.id}>
-					<h3>
+				<div key={l.id}
+					style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+					<h3 style={{ flexGrow: 1 }}>
 						<a href={`/for-teachers/lessons/${l.id}`}>
 							{lessonsCtrl[l.id].lesson_name}
 						</a>
 					</h3>
+					<small>
+						Created {parseISO(lessonsCtrl[l.id].created_at).toLocaleString()}
+					</small>
 				</div>
 			))}
 		</div>

@@ -1,16 +1,16 @@
 import { createRef, FC, MutableRefObject, useEffect, useMemo, useRef, useState } from "react";
 import { LessonQuestion, LessonQuestionAnalysis, LessonResponse } from "../data-model";
 import { parseISO } from "date-fns";
-import dragula from "dragula";
+import dragula from "react-dragula";
 import { faGripLines } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 export interface LessonQuestionResponsesProps {
     analysis: LessonQuestionAnalysis
-    onAnalysisChange: (newAnalysis: LessonQuestionAnalysis) => void
+    onReorderResponse: (responseId: string, oldCatName: string, newCatName: string) => void
 }
 
-const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, onAnalysisChange }) => {
+const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, onReorderResponse }) => {
     const responsesByCatName = useMemo(() => analysis.responses_by_category, [analysis.responses_by_category])
     const [responsesByCatNameCtrl, setResponsesByCatNameCtrl] = useState<{ catName: string, responses: LessonResponse[] }[]>()
     useEffect(() => {
@@ -20,40 +20,40 @@ const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, o
                 responses: v,
             }))
         )
-    }, [responsesByCatName])
-    const containerRefsByCatName = useRef<Record<string, MutableRefObject<HTMLDivElement>>>(Object.keys(responsesByCatName).reduce(
-        (acc, catName) => {
-            acc[catName] = createRef() as MutableRefObject<HTMLDivElement>
-            return acc
-        },
-        {} as Record<string, MutableRefObject<HTMLDivElement>>,
-    ))
-    useEffect(() => {
-        console.log(containerRefsByCatName.current)
-        dragula(
-            Object.values(containerRefsByCatName.current).map(ref => ref.current),
-            {
-                moves: (el, container, handle, sibling) => {
-                    return !!handle?.classList.contains("drag-handle")
+        if (!containerRefsByCatName.current) {
+            containerRefsByCatName.current = Object.keys(responsesByCatName).reduce(
+                (acc, catName) => {
+                    acc[catName] = createRef() as MutableRefObject<HTMLDivElement>
+                    return acc
                 },
-            },
-        ).on("drop", (el, source) => {
-            const newCatName = source.getAttribute("data-cat-name")!
-            const studentName = el.getAttribute("data-student-name")!
-            const newAnalysis = { ...analysis }
-            newAnalysis.responses_by_category = { ...responsesByCatName }
-            const oldCatName = Object.keys(responsesByCatName).find((catName) => responsesByCatName[catName].find((r) => r.student_name === studentName)) ?? ""
-            const response = responsesByCatName[oldCatName].find((r) => r.student_name === studentName)!
-            newAnalysis.responses_by_category[oldCatName!] = responsesByCatName[oldCatName!].filter((r) => r.student_name !== studentName)
-            newAnalysis.responses_by_category[newCatName] = [
-                ...newAnalysis.responses_by_category[newCatName],
-                response,
-            ]
-            onAnalysisChange(newAnalysis)
-        })
-    }, [containerRefsByCatName.current])
+                {} as Record<string, MutableRefObject<HTMLDivElement>>,
+            )
+        }
+    }, [responsesByCatName])
+    const containerRefsByCatName = useRef<Record<string, MutableRefObject<HTMLDivElement>>>()
+    useEffect(() => {
+        if (containerRefsByCatName.current) {
+            dragula(
+                Object.values(containerRefsByCatName.current).map(ref => ref.current),
+                {
+                    moves: (el, container, handle, sibling) => {
+                        return !!handle?.classList.contains("drag-handle")
+                    },
+                },
+            ).on("drop", (el, source) => {
+                const newCatName = source.getAttribute("data-cat-name")!
+                const studentName = el.getAttribute("data-student-name")!
+                const oldCatName = Object.keys(responsesByCatName).find((catName) => responsesByCatName[catName].find((r) => r.student_name === studentName)) ?? ""
+                const response = responsesByCatName[oldCatName].find((r) => r.student_name === studentName)!
+                onReorderResponse(response.id, oldCatName, newCatName)
+            })
+        }
+    }, [containerRefsByCatName.current, responsesByCatNameCtrl])
 
-    return <div className="question-responses">
+    return <div className="question-responses" style={{ marginTop: "40px" }}>
+
+        <hr />
+        <h2>Responses by category</h2>
     
         {responsesByCatNameCtrl?.map(({catName, responses}) =>
             <div key={catName} className="response-category"
@@ -87,7 +87,7 @@ const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, o
                         }}
                     /> */}
                 </h4>
-                <div className="response-category-responses"
+                {containerRefsByCatName.current && <div className="response-category-responses"
                     key={catName}
                     data-cat-name={catName}
                     ref={containerRefsByCatName.current[catName]}
@@ -111,9 +111,9 @@ const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, o
                                 marginTop: 0,
                             }}>
                                 <span>
-                                    <b>{r.student_name} submitted</b>
+                                    <b>{r.student_name}</b>
                                     &nbsp;
-                                    <small>at {parseISO(r.created_at).toLocaleString()}</small>
+                                    <small>submitted at {parseISO(r.created_at).toLocaleString()}</small>
                                 </span>
                                 <span style={{ cursor: "grab" }} className="drag-handle">
                                     <FontAwesomeIcon icon={faGripLines}
@@ -126,16 +126,16 @@ const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, o
                                 justifyContent: "space-between",
                                 gap: "20px",
                             }}>
-                                {r.response_image_base64 &&
-                                    <img src={r.response_image_base64} alt={r.analysis!.response_summary}
-                                        style={{ height: "200px" }}
-                                    />
+                                {r.response_image_url &&
+                                    <div style={{ height: "200px", flexBasis: "300px", minWidth: "300px" }}>
+                                        <img src={r.response_image_url} alt={r.analysis!.response_summary} style={{ width: "100%", height: "auto" }} />
+                                    </div>
                                 }
-                                <p>{r.analysis!.response_summary}</p>
+                                <p style={{ fontSize: "1.1rem" }}>{r.analysis!.response_summary}</p>
                             </div>
                         </div>
                     )}
-                </div>
+                </div>}
 
                 <hr style={{ marginTop: "40px", marginBottom: "-10px" }} />
             </div>

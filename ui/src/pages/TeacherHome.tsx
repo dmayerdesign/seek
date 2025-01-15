@@ -245,11 +245,20 @@ const TeacherHome: FC = () => {
 	)
 	const deleteStudent = useCallback(
 		async (studentId: string, classId: string) => {
-			const newStudentsCtrl = { ...studentsCtrl }
-			delete newStudentsCtrl[studentId]
-			setStudentsCtrl(newStudentsCtrl)
-			if (user) {
-				const studentHasResponses = teacherData?.lessons?.some((l) => l.responses?.some((r) => r.student_id === studentId))
+			if (teacherData && user) {
+				const newStudentsCtrl = { ...studentsCtrl }
+				delete newStudentsCtrl[studentId]
+				setStudentsCtrl(newStudentsCtrl)
+				setTeacherData(td => ({
+					...td!,
+					classes: td!.classes?.map(c => ({
+						...c,
+						students: c.students?.filter(s => s.id !== studentId) ?? [],
+					})) ?? [],
+				}) as TeacherData)
+
+				const studentHasResponses = teacherData?.lessons?.some((l) =>
+					l.responses?.some((r) => r.student_id === studentId))
 				if (studentHasResponses) {
 					window.alert("To delete this student, you must delete all responses associated with them first.")
 					return
@@ -354,7 +363,7 @@ const TeacherHome: FC = () => {
 				) : user === undefined ? (
 					<>
 						<div className="page-content">
-							<p>Loading...</p>
+							<p>Loading (please be patient)...</p>
 						</div>
 					</>
 				) : user === null ? (
@@ -487,7 +496,7 @@ const TeacherHome: FC = () => {
 					<div className="page-content">
 						{teacherData === undefined ? (
 							<>
-								<p>Loading...</p>
+								<p>Loading (please be patient)...</p>
 							</>
 						) : (
 							<>
@@ -585,7 +594,7 @@ const TeacherHome: FC = () => {
 															})
 														}}
 													/>
-													<button
+													{c.name !== "Example Class" && <button
 														onClick={() => {
 															if (window.confirm(`Are you sure you want to delete ${c.name}?`)) {
 																deleteClass(c.id)
@@ -593,7 +602,7 @@ const TeacherHome: FC = () => {
 														}}
 													>
 														<FontAwesomeIcon icon={faTrashCan} />
-													</button>
+													</button>}
 												</h3>
 												<hr style={{ marginBottom: "5px" }} />
 												<ul id="students">
@@ -612,6 +621,7 @@ const TeacherHome: FC = () => {
 																		className="inline-input"
 																		style={{ flexGrow: 1 }}
 																		value={studentsCtrl[s.id].nickname}
+																		disabled={c.name === "Example Class"}
 																		onChange={(e) => {
 																			setStudentsCtrl((sc) => ({
 																				...sc,
@@ -632,13 +642,13 @@ const TeacherHome: FC = () => {
 																			})
 																		}}
 																	/>
-																	<button
+																	{c.name !== "Example Class" && <button
 																		onClick={() => {
 																			deleteStudent(s.id, c.id)
 																		}}
 																	>
 																		<FontAwesomeIcon icon={faTrashCan} />
-																	</button>
+																	</button>}
 																</li>
 															),
 													)}

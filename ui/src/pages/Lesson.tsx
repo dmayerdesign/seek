@@ -2,7 +2,7 @@ import { createRef, FC, ForwardRefRenderFunction, MutableRefObject, useCallback,
 import { AppCtx, LessonPlanWithQuestions, LessonResponse, LessonWithResponses, TeacherData } from "../data-model";
 import { useNavigate, useParams } from "react-router-dom";
 import { parseISO } from "date-fns"
-import { groupBy, isEqual, set, uniq } from "lodash";
+import { groupBy, isEqual, set, uniq, upperFirst } from "lodash";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import { faChevronLeft, faLink } from "@fortawesome/free-solid-svg-icons";
@@ -42,8 +42,29 @@ const Lesson: FC<LessonProps> = ({}) => {
 
     // Fetch lesson and lesson plan
     const { id: lessonId } = useParams()
-    const [lesson, setLesson] = useState<LessonWithResponses>()
+    const [_lesson, setLesson] = useState<LessonWithResponses>()
+    const lesson = useMemo(() => {
+        // THIS IS A SHIM to de-duplicate categories that are not correctly sentence cased,
+        // which ONLY applies to lessons created before the `.capitalize()` fix was implemented
+        if (!_lesson?.analysis_by_question_id) return _lesson
+        Object.keys(_lesson.analysis_by_question_id).forEach(qid => {
+            const rbc = _lesson.analysis_by_question_id![qid].responses_by_category
+            const oldCategories = Object.keys(rbc)
+            oldCategories.forEach(oc => {
+                if (oc === upperFirst(oc.trim().toLowerCase())) return
+                rbc[upperFirst(oc.trim().toLowerCase())] = rbc[oc]
+                delete rbc[oc]
+            })
+            _lesson.analysis_by_question_id![qid].responses_by_category = { ...rbc }
+        })
+        return { ..._lesson, analysis_by_question_id: { ..._lesson.analysis_by_question_id } }
+    }, [_lesson])
     const [lessonPlan, setLessonPlan] = useState<LessonPlanWithQuestions>()
+    const thisClass = useMemo(() => {
+        if (teacherData?.classes && lesson) {
+            return teacherData.classes.find(c => c.id === lesson.class_id)
+        }
+    }, [teacherData?.classes, lesson])
     useEffect(() => {
         if (teacherData && lessonId && !lesson) {
             callCloudFunction<LessonWithResponses[]>("getLessons", {}).then((_lessons) => {
@@ -59,29 +80,31 @@ const Lesson: FC<LessonProps> = ({}) => {
         }
     }, [lesson?.id])
     const editLesson = useCallback(
-        async (id: string, lessonInput: LessonWithResponses) => {
+        async (id: string, lessonInput: LessonWithResponses, skipLocalStateUpdate = false) => {
             if (teacherData) {
                 try {
                     const oldLesson = teacherData?.lessons?.find((l) => l.id === id)
                     if (oldLesson && !isEqual(oldLesson, lessonInput)) {
-                        // Update our local state
-                        let newLessons = [...(teacherData.lessons ?? [])]
-                        const newLesson = {
-                            ...oldLesson,
-                            ...lessonInput,
+                        if (!skipLocalStateUpdate) {
+                            // Update our local state
+                            let newLessons = [...(teacherData.lessons ?? [])]
+                            const newLesson = {
+                                ...oldLesson,
+                                ...lessonInput,
+                            }
+                            newLessons[newLessons.findIndex((l) => l.id === id)] = newLesson
+                            if (lessonInput.deleted) {
+                                newLessons = newLessons.filter((l) => l.id !== id)
+                            }
+                            setLesson(newLesson)
+                            setTeacherData(
+                                (td) =>
+                                    ({
+                                        ...td,
+                                        lessons: newLessons,
+                                    }) as TeacherData,
+                            )
                         }
-                        newLessons[newLessons.findIndex((l) => l.id === id)] = newLesson
-                        if (lessonInput.deleted) {
-                            newLessons = newLessons.filter((l) => l.id !== id)
-                        }
-                        setLesson(newLesson)
-                        setTeacherData(
-                            (td) =>
-                                ({
-                                    ...td,
-                                    lessons: newLessons,
-                                }) as TeacherData,
-                        )
                         // Then update the database
                         await callCloudFunction("putLesson", {
                             ...lessonInput,
@@ -97,6 +120,21 @@ const Lesson: FC<LessonProps> = ({}) => {
         },
         [teacherData, callCloudFunction],
     )
+    const reorderAnalysisCategories = useCallback(async (
+        lessonId: string,
+        questionId: string,
+        responseId: string,
+        oldCategory: string,
+        newCategory: string,
+    ) => {
+        await callCloudFunction("reorderAnalysisCategories", {
+            lesson_id: lessonId,
+            question_id: questionId,
+            response_id: responseId,
+            old_category: oldCategory,
+            new_category: newCategory,
+        })
+    }, [callCloudFunction])
     const responsesByQID = useMemo(() => {
         if (lesson?.responses) {
             return groupBy(lesson.responses, (r) => r.question_id)
@@ -114,7 +152,6 @@ const Lesson: FC<LessonProps> = ({}) => {
     }, [lesson?.responses])
     const studentNamesNotFinishedByQID = useMemo(() => {
         if (teacherData?.classes) {
-            const thisClass = teacherData.classes.find(c => c.id === lesson?.class_id)
             return lesson?.lesson_plan?.questions.reduce((acc, q) => {
                 acc[q.id] = thisClass?.students?.filter(s => !studentNamesFinishedByQID?.[q.id]?.includes(s.nickname))
                     ?.map(s => s.nickname) ?? []
@@ -122,7 +159,7 @@ const Lesson: FC<LessonProps> = ({}) => {
             }, {} as Record<string, string[]>) ?? {}
         }
         return {}
-    }, [lesson?.responses])
+    }, [teacherData, lesson, thisClass])
     const studentNamesStartedNotFinishedByQID = useMemo(() => {
         return Object.entries(studentNamesFinishedByQID).reduce((acc, [qid, studentNamesFinished]) => {
             acc[qid] = lesson?.student_names_started?.filter((sn) => !studentNamesFinished?.includes(sn)) ?? []
@@ -150,9 +187,13 @@ const Lesson: FC<LessonProps> = ({}) => {
     const [chart, setChart] = useState<Chart>()
     useEffect(() => {
         if (chartCanvasRef.current && lesson && lessonPlan && !chart) {
-            const allCategories = uniq(Object.values(lesson?.analysis_by_question_id ?? {}).flatMap((analysis) => Object.keys(analysis.responses_by_category)))
+            const allCategories = uniq(Object.values(lesson?.analysis_by_question_id ?? {}).flatMap((analysis) => Object.keys(analysis?.responses_by_category ?? {})))
             const datasets = Object.keys(lesson?.analysis_by_question_id ?? {})?.map((qid, i) => ({
-                label: `Question ${(lessonPlan?.questions.findIndex(q => q.id === qid) ?? 0) + 1}`,
+                label: i === 0
+                    ? "Pre-conception"
+                    : i === 1
+                    ? "Post-conception"
+                    : `Question ${(lessonPlan?.questions.findIndex(q => q.id === qid) ?? 0) + 1}`,
                 data: allCategories?.map((category) => lesson?.analysis_by_question_id?.[qid]?.responses_by_category?.[category]?.length ?? 0),
                 // borderColor: `rgb(${Math.min(255, i * 20)}, 112, ${Math.min(255, (i+1) * 90)})`,
                 backgroundColor: `rgba(${Math.min(255, i * 20)}, 112, ${Math.min(255, (i+1) * 90)}, 0.9)`,
@@ -216,7 +257,7 @@ const Lesson: FC<LessonProps> = ({}) => {
         <div className="seek-page">
             <div className="page-content">{!lesson
                 ? <div>
-                    <p>Loading...</p>
+                    <p>Loading (please be patient)...</p>
                 </div>
                 : <div>
                     <section className="faint-bg">
@@ -224,7 +265,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                             <div style={{ margin: "20px 0" }}>
                                 <button onClick={() => history.back()}>
                                     <FontAwesomeIcon icon={faChevronLeft} />&nbsp;
-                                    Back
+                                    Save & go back
                                 </button>
                             </div>
                             <h2 style={{ display: "flex", justifyContent: "space-between" }}>
@@ -249,7 +290,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                                         })
                                     }}
                                 />
-                                <button
+                                {!lesson.responses?.length && <button
                                     onClick={() => {
                                         if (window.confirm(`Are you sure you want to delete ${lesson.lesson_name}?`)) {
                                             setDeleting(true)
@@ -257,14 +298,14 @@ const Lesson: FC<LessonProps> = ({}) => {
                                                 ...lesson,
                                                 deleted: true,
                                             }).then(() => {
-                                                navigate("/")
+                                                window.location.href = "/"
                                             })
                                         }
                                     }}
                                 >
                                     {deleting ? <em>Deleting...&nbsp;</em> : ""}
                                     <FontAwesomeIcon icon={faTrashCan} />
-                                </button>
+                                </button>}
                             </h2>
                             <p style={{ marginTop: "-8px" }}>Class: {lesson.class_name}</p>
                             <p>
@@ -279,22 +320,53 @@ const Lesson: FC<LessonProps> = ({}) => {
                                         opacity: copiedLink ? "0.5" : "1",
                                     }}>
                                     <FontAwesomeIcon icon={faLink} />&nbsp;
-                                    {copiedLink ? "Link copied" : "Copy link to lesson"}
+                                    {copiedLink ? "Student link copied" : "Copy student link to lesson"}
                                 </button>
                             </p>
 
                             <hr />
 
-                            {!!lesson.analysis_by_question_id && <>
+                            {!!Object.keys(lesson.analysis_by_question_id ?? {}).length && !!lessonPlan?.questions && <>
                                 <div className="charts" style={{ width: "100%", height: "300px" }}>
                                     <canvas id="chart-canvas" ref={chartCanvasRef}></canvas>
+                                </div>
+                                <div style={{ margin: "30px 0 40px" }}>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th colSpan={4} style={{ color: "#444" }}>Student</th>
+                                                {lessonPlan?.questions.map((q, i) =>
+                                                    <th colSpan={4} style={{ color: "#444" }} key={q.id}>{
+                                                        i === 0 ? "Pre-conception" : i === 1 ? "Post-conception" : "Question " + (i + 1)
+                                                    }</th>)}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {thisClass?.students?.map((student) => <tr key={student.nickname}>
+                                                <td colSpan={4} style={{ border: "1px solid #aaa", padding: "10px", fontSize: "1.4rem" }}>
+                                                    {student.nickname}
+                                                </td>
+                                                {lessonPlan?.questions.map(q =>
+                                                    <td key={q.id} colSpan={4}
+                                                        style={{ border: "1px solid #aaa", padding: "10px", fontSize: "1.4rem" }}>
+                                                        {Object.entries(lesson.analysis_by_question_id![q.id]?.responses_by_category ?? {})
+                                                            .filter(([ _, resps ]) => resps?.find(r => r.student_name === student.nickname))
+                                                            .map(([cat]) => cat)
+                                                            .join(", ")}
+                                                    </td>
+                                                )}
+                                            </tr>)}
+                                        </tbody>
+                                    </table>
                                 </div>
                                 <hr />
                             </>}
 
                             {lessonPlan?.questions?.map((q, i) => <div key={q.id} style={{ marginBottom: "60px" }}>
                                 <h3 style={{ marginTop: "35px" }}>
-                                    <small className="supertitle">Question {i+1}:</small>
+                                    <small className="supertitle">{
+                                        i === 0 ? "Pre-conception question" : i === 1 ? "Post-conception question" : "Question " + (i + 1)
+                                    }</small>
                                     {q.body_text}
                                 </h3>
                                 
@@ -325,9 +397,25 @@ const Lesson: FC<LessonProps> = ({}) => {
                                 <div id="student-responses">
                                     <div style={{ marginBottom: "20px" }}>
                                         {lesson.questions_locked?.includes(q.id)
-                                            ? <span style={{ opacity: "0.5" }}>
-                                                <em>Responses locked</em>
-                                            </span>
+                                            ? <>
+                                                <span style={{ opacity: "0.5", marginRight: "20px" }}>
+                                                    <em>Responses locked</em>
+                                                </span>
+                                                {/* <button
+                                                    disabled={
+                                                        !lesson.responses?.filter(r => r.question_id === q.id) ||
+                                                        lesson.responses.filter(r => r.question_id === q.id).some(r => !r.analysis)
+                                                    }
+                                                    onClick={() => {
+                                                        const newQuestionsLocked = lesson.questions_locked?.filter(qid => qid !== q.id)
+                                                        editLesson(lesson.id, {
+                                                            ...lesson,
+                                                            questions_locked: newQuestionsLocked,
+                                                        })
+                                                    }}>
+                                                    Unlock
+                                                </button> */}
+                                            </>
                                             : <button
                                                 disabled={
                                                     !lesson.responses?.filter(r => r.question_id === q.id) ||
@@ -350,21 +438,31 @@ const Lesson: FC<LessonProps> = ({}) => {
                                     {lesson.questions_locked?.includes(q.id) &&
                                     !!lesson.responses?.length &&
                                     !lesson.analysis_by_question_id?.[q.id]?.responses_by_category && <>
-                                        <p style={{ marginBottom: "30px" }}><em>Analyzing...</em></p>
+                                        <p style={{ marginBottom: "30px" }}><em>Analyzing (may take up to a minute &mdash; do not leave the page)...</em></p>
                                     </>}
 
                                     <div style={{ marginTop: "-15px" }}>
                                         {lesson.analysis_by_question_id?.[q.id]?.responses_by_category &&
                                         <LessonQuestionResponses
                                             analysis={lesson.analysis_by_question_id![q.id]}
-                                            onAnalysisChange={(newAnalysis) => {
-                                                editLesson(lesson.id, {
-                                                    ...lesson,
-                                                    analysis_by_question_id: {
-                                                        ...lesson.analysis_by_question_id,
-                                                        [q.id]: newAnalysis,
-                                                    },
-                                                })
+                                            onReorderResponse={(responseId, oldCatName, newCatName) => {
+                                                const analysis = lesson.analysis_by_question_id![q.id]
+                                                const newAnalysis = { ...analysis }
+                                                newAnalysis.responses_by_category = { ...analysis.responses_by_category }
+                                                const response = analysis.responses_by_category[oldCatName].find((r) => r.id === responseId)!
+                                                newAnalysis.responses_by_category[oldCatName!] = analysis.responses_by_category[oldCatName!].filter((r) => r.id !== responseId)
+                                                newAnalysis.responses_by_category[newCatName] = [
+                                                    ...newAnalysis.responses_by_category[newCatName],
+                                                    response,
+                                                ]
+                                                reorderAnalysisCategories(lesson.id, q.id, responseId, oldCatName, newCatName)
+                                                // editLesson(lesson.id, {
+                                                //     ...lesson,
+                                                //     analysis_by_question_id: {
+                                                //         ...lesson.analysis_by_question_id,
+                                                //         [q.id]: newAnalysis,
+                                                //     },
+                                                // }, true)
                                             }}
                                         />}
                                     </div>

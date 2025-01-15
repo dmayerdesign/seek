@@ -90,7 +90,8 @@ section {
 	a,
 	label {
 		font-weight: bold;
-		color: #111 !important;
+		color: #286ba9 !important;
+		text-transform: uppercase;
 	}
 	.large-button,
 	.large-button:disabled {
@@ -323,7 +324,7 @@ li {
 	display: inline-block;
 	width: 100%;
 	flex-basis: 100%;
-	font-size: 0.7em;
+	font-size: 0.75em;
 	margin-bottom: 0.5rem;
 }
 
@@ -349,4 +350,12 @@ svg path {
 button * {
 	color: inherit !important;
 }
-
+a {
+	text-decoration: underline !important;
+}
+h1 button, h1 a,
+h2 button, h2 a,
+h3 button, h3 a,
+h4 button, h4 a {
+	text-transform: inherit !important;
+}
