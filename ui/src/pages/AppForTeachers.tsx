@@ -36,6 +36,9 @@ const AppForTeachers: FC = () => {
 								style={{ height: "18px", width: "auto", textShadow: "none" }}
 							/>
 						</button>
+						<h1 style={{ fontSize: "1.6rem" }}>
+							Exploration and Categorization
+						</h1>
 						{user && (
 							<button
 								onClick={async () => {

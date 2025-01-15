@@ -245,7 +245,7 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 							<div style={{ margin: "20px 0" }}>
 								<button onClick={() => history.back()}>
 									<FontAwesomeIcon icon={faChevronLeft} />&nbsp;
-									Back
+									Save & go back
 								</button>
 							</div>
 							<div key={lessonPlan.id}>
@@ -271,7 +271,7 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 											})
 										}}
 									/>
-									<button
+									{!teacherData.lessons?.find(l => l.lesson_plan_id === lessonPlan.id) && <button
 										onClick={() => {
 											if (window.confirm(`Are you sure you want to delete ${lessonPlan.title}?`)) {
 												deleteLessonPlan(lessonPlan.id)
@@ -279,17 +279,20 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 										}}
 									>
 										<FontAwesomeIcon icon={faTrashCan} />
-									</button>
+									</button>}
 								</h2>
 								<ul id="lesson-plan-questions">
 									{Object.values(lessonQuestionsCtrl)?.map(
-										(q) =>
+										(q, i) =>
 											lessonQuestionsCtrl[q.id] && (
 												<li key={q.id}
 													style={{ padding: "0", marginTop: "30px", marginBottom: "50px" }}>
 													
 													<hr style={{ marginBottom: "30px" }} />
 
+													<p><b>{
+														i === 0 ? "Pre-conception question" : i === 1 ? "Post-conception question" : "Question " + (i + 1)
+													}</b></p>
 													<h4 style={{
 														display: "flex",
 														justifyContent: "space-between",
@@ -321,7 +324,7 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 																})
 															}}
 														/>
-														<button
+														{!teacherData.lessons?.find(l => l.lesson_plan_id === lessonPlan.id) && <button
 															onClick={() => {
 																if (window.confirm(`Are you sure you want to delete this question?`)) {
 																	deleteLessonQuestion(lessonPlan.id, q.id)
@@ -329,12 +332,12 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 															}}
 														>
 															<FontAwesomeIcon icon={faTrashCan} />
-														</button>
+														</button>}
 													</h4>
 													<br />
 													<div>
 														<p>
-															If you want, enter below one or more categories of response
+															Optionally, enter below one or more categories of response
 															that you expect to see, separated by commas. Otherwise, the
 															app will make its best effort to categorize reasonably.
 														</p>

@@ -50,7 +50,10 @@ const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, o
         }
     }, [containerRefsByCatName.current, responsesByCatNameCtrl])
 
-    return <div className="question-responses">
+    return <div className="question-responses" style={{ marginTop: "40px" }}>
+
+        <hr />
+        <h2>Responses by category</h2>
     
         {responsesByCatNameCtrl?.map(({catName, responses}) =>
             <div key={catName} className="response-category"
@@ -108,9 +111,9 @@ const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, o
                                 marginTop: 0,
                             }}>
                                 <span>
-                                    <b>{r.student_name} submitted</b>
+                                    <b>{r.student_name}</b>
                                     &nbsp;
-                                    <small>at {parseISO(r.created_at).toLocaleString()}</small>
+                                    <small>submitted at {parseISO(r.created_at).toLocaleString()}</small>
                                 </span>
                                 <span style={{ cursor: "grab" }} className="drag-handle">
                                     <FontAwesomeIcon icon={faGripLines}
@@ -123,12 +126,12 @@ const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, o
                                 justifyContent: "space-between",
                                 gap: "20px",
                             }}>
-                                {r.response_image_base64 &&
-                                    <img src={r.response_image_base64} alt={r.analysis!.response_summary}
-                                        style={{ height: "200px" }}
-                                    />
+                                {r.response_image_url &&
+                                    <div style={{ height: "200px", flexBasis: "300px", minWidth: "300px" }}>
+                                        <img src={r.response_image_url} alt={r.analysis!.response_summary} style={{ width: "100%", height: "auto" }} />
+                                    </div>
                                 }
-                                <p>{r.analysis!.response_summary}</p>
+                                <p style={{ fontSize: "1.1rem" }}>{r.analysis!.response_summary}</p>
                             </div>
                         </div>
                     )}

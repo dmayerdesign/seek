@@ -2,7 +2,7 @@ import { createRef, FC, ForwardRefRenderFunction, MutableRefObject, useCallback,
 import { AppCtx, LessonPlanWithQuestions, LessonResponse, LessonWithResponses, TeacherData } from "../data-model";
 import { useNavigate, useParams } from "react-router-dom";
 import { parseISO } from "date-fns"
-import { groupBy, isEqual, set, uniq } from "lodash";
+import { groupBy, isEqual, set, uniq, upperFirst } from "lodash";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import { faChevronLeft, faLink } from "@fortawesome/free-solid-svg-icons";
@@ -42,7 +42,23 @@ const Lesson: FC<LessonProps> = ({}) => {
 
     // Fetch lesson and lesson plan
     const { id: lessonId } = useParams()
-    const [lesson, setLesson] = useState<LessonWithResponses>()
+    const [_lesson, setLesson] = useState<LessonWithResponses>()
+    const lesson = useMemo(() => {
+        // THIS IS A SHIM to de-duplicate categories that are not correctly sentence cased,
+        // which ONLY applies to lessons created before the `.capitalize()` fix was implemented
+        if (!_lesson?.analysis_by_question_id) return _lesson
+        Object.keys(_lesson.analysis_by_question_id).forEach(qid => {
+            const rbc = _lesson.analysis_by_question_id![qid].responses_by_category
+            const oldCategories = Object.keys(rbc)
+            oldCategories.forEach(oc => {
+                if (oc === upperFirst(oc.trim().toLowerCase())) return
+                rbc[upperFirst(oc.trim().toLowerCase())] = rbc[oc]
+                delete rbc[oc]
+            })
+            _lesson.analysis_by_question_id![qid].responses_by_category = { ...rbc }
+        })
+        return { ..._lesson, analysis_by_question_id: { ..._lesson.analysis_by_question_id } }
+    }, [_lesson])
     const [lessonPlan, setLessonPlan] = useState<LessonPlanWithQuestions>()
     const thisClass = useMemo(() => {
         if (teacherData?.classes && lesson) {
@@ -95,7 +111,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                             updated_at: new Date().toISOString(),
                         })
                         // refreshTeacherData()
-                        // window.location.reload()
+                        window.location.reload()
                     }
                 } catch (e) {
                     console.error(e)
@@ -173,7 +189,11 @@ const Lesson: FC<LessonProps> = ({}) => {
         if (chartCanvasRef.current && lesson && lessonPlan && !chart) {
             const allCategories = uniq(Object.values(lesson?.analysis_by_question_id ?? {}).flatMap((analysis) => Object.keys(analysis?.responses_by_category ?? {})))
             const datasets = Object.keys(lesson?.analysis_by_question_id ?? {})?.map((qid, i) => ({
-                label: `Question ${(lessonPlan?.questions.findIndex(q => q.id === qid) ?? 0) + 1}`,
+                label: i === 0
+                    ? "Pre-conception"
+                    : i === 1
+                    ? "Post-conception"
+                    : `Question ${(lessonPlan?.questions.findIndex(q => q.id === qid) ?? 0) + 1}`,
                 data: allCategories?.map((category) => lesson?.analysis_by_question_id?.[qid]?.responses_by_category?.[category]?.length ?? 0),
                 // borderColor: `rgb(${Math.min(255, i * 20)}, 112, ${Math.min(255, (i+1) * 90)})`,
                 backgroundColor: `rgba(${Math.min(255, i * 20)}, 112, ${Math.min(255, (i+1) * 90)}, 0.9)`,
@@ -245,7 +265,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                             <div style={{ margin: "20px 0" }}>
                                 <button onClick={() => history.back()}>
                                     <FontAwesomeIcon icon={faChevronLeft} />&nbsp;
-                                    Back
+                                    Save & go back
                                 </button>
                             </div>
                             <h2 style={{ display: "flex", justifyContent: "space-between" }}>
@@ -270,7 +290,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                                         })
                                     }}
                                 />
-                                <button
+                                {!lesson.responses?.length && <button
                                     onClick={() => {
                                         if (window.confirm(`Are you sure you want to delete ${lesson.lesson_name}?`)) {
                                             setDeleting(true)
@@ -285,7 +305,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                                 >
                                     {deleting ? <em>Deleting...&nbsp;</em> : ""}
                                     <FontAwesomeIcon icon={faTrashCan} />
-                                </button>
+                                </button>}
                             </h2>
                             <p style={{ marginTop: "-8px" }}>Class: {lesson.class_name}</p>
                             <p>
@@ -306,7 +326,7 @@ const Lesson: FC<LessonProps> = ({}) => {
 
                             <hr />
 
-                            {!!lesson.analysis_by_question_id && !!lessonPlan?.questions && <>
+                            {!!Object.keys(lesson.analysis_by_question_id ?? {}).length && !!lessonPlan?.questions && <>
                                 <div className="charts" style={{ width: "100%", height: "300px" }}>
                                     <canvas id="chart-canvas" ref={chartCanvasRef}></canvas>
                                 </div>
@@ -316,17 +336,19 @@ const Lesson: FC<LessonProps> = ({}) => {
                                             <tr>
                                                 <th colSpan={4} style={{ color: "#444" }}>Student</th>
                                                 {lessonPlan?.questions.map((q, i) =>
-                                                    <th colSpan={4} style={{ color: "#444" }} key={q.id}>Question {i + 1}</th>)}
+                                                    <th colSpan={4} style={{ color: "#444" }} key={q.id}>{
+                                                        i === 0 ? "Pre-conception" : i === 1 ? "Post-conception" : "Question " + (i + 1)
+                                                    }</th>)}
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {thisClass?.students?.map((student) => <tr key={student.nickname}>
-                                                <td colSpan={4} style={{ border: "1px solid #aaa", padding: "10px" }}>
+                                                <td colSpan={4} style={{ border: "1px solid #aaa", padding: "10px", fontSize: "1.4rem" }}>
                                                     {student.nickname}
                                                 </td>
                                                 {lessonPlan?.questions.map(q =>
                                                     <td key={q.id} colSpan={4}
-                                                        style={{ border: "1px solid #aaa", padding: "10px" }}>
+                                                        style={{ border: "1px solid #aaa", padding: "10px", fontSize: "1.4rem" }}>
                                                         {Object.entries(lesson.analysis_by_question_id![q.id]?.responses_by_category ?? {})
                                                             .filter(([ _, resps ]) => resps?.find(r => r.student_name === student.nickname))
                                                             .map(([cat]) => cat)
@@ -342,7 +364,9 @@ const Lesson: FC<LessonProps> = ({}) => {
 
                             {lessonPlan?.questions?.map((q, i) => <div key={q.id} style={{ marginBottom: "60px" }}>
                                 <h3 style={{ marginTop: "35px" }}>
-                                    <small className="supertitle">Question {i+1}:</small>
+                                    <small className="supertitle">{
+                                        i === 0 ? "Pre-conception question" : i === 1 ? "Post-conception question" : "Question " + (i + 1)
+                                    }</small>
                                     {q.body_text}
                                 </h3>
                                 

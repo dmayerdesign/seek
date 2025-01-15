@@ -680,6 +680,7 @@ def putLesson(request: https_fn.CallableRequest):
 
                             # Add categorization_guidance if any
                             if len(preset_categories) > 0:
+                                print("Got preset categories from the previous question:", preset_categories)
                                 llm_messages.append({
                                     "role": "user",
                                     "content": [{
@@ -694,6 +695,7 @@ def putLesson(request: https_fn.CallableRequest):
                                 preset_cats_split_by_comma = preset_cats_str.split(",")
                                 preset_cats_split_by_newline = preset_cats_str.split("\n")
                                 preset_categories = preset_cats_split_by_comma if len(preset_cats_split_by_comma) > len(preset_cats_split_by_newline) else preset_cats_split_by_newline
+                                print("Got preset categories from the categorization guidance:", preset_categories)
                                 llm_messages.append({
                                     "role": "user",
                                     "content": [{
@@ -703,15 +705,6 @@ def putLesson(request: https_fn.CallableRequest):
                                             "Consider ALL of these carefully when deciding how to categorize each student's response. It is encouraged to assign a multiple categories to a response if and only if the response fits the requirements of more than one category.",
                                     }],
                                 })
-                                # llm_messages.append({
-                                #     "role": "user",
-                                #     "content": [{
-                                #         "type": "text",
-                                #         "text": "Please use the following as guidance for how to categorize responses:\n\n"+
-                                #             question.categorization_guidance+"\n\n"+
-                                #             "Consider ALL of the categories mentioned here carefully when deciding how to categorize each student's response.It is encouraged to assign a multiple categories to a response if and only if the response fits the requirements of more than one category.",
-                                #     }],
-                                # })
 
                             # Add the student responses
                             lesson_responses_message_content = [{
@@ -746,9 +739,9 @@ def putLesson(request: https_fn.CallableRequest):
 
                                     Your response should be output in JSON format. Respond with the JSON object ONLY, and no other text.
                                     
-                                    Use this object as a starting point, and simply populate each array with the students' names belonging in that category:
+                                    Use this object as a template, and simply populate each array with the students' names belonging in that category:
                                     
-                                    {json.dumps({x.strip(): [] for x in preset_categories} | {"No category": []}, indent=2)}
+                                    {json.dumps({x.strip().capitalize(): [] for x in preset_categories} | {"No category": []}, indent=2)}
                                 """),
                             })
                             client = Anthropic(api_key=ANTHROPIC_API_KEY.value)
@@ -785,14 +778,13 @@ def putLesson(request: https_fn.CallableRequest):
                                                 ),
                                                 content_type="image/png",
                                             )
-                                            resp_dict['response_image_url'] = blb._get_download_url(
-                                                client=bucket.client
-                                            )
+                                            blb.make_public()
+                                            resp_dict['response_image_url'] = blb.public_url
                                         resp_dict['response_image_base64'] = None
                                         responses_by_student_name[resp.get('student_name')] = LessonResponse(**resp_dict)
                                     responses_by_category: dict[str, list[LessonResponse]] = {}
                                     for cat, students in analyses_raw.items():
-                                        category = cat.capitalize()
+                                        category = cat.strip().capitalize()
                                         if category not in responses_by_category:
                                             responses_by_category[category] = []
                                         for student in students:
