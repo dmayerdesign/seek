@@ -231,99 +231,105 @@ def _configureDefaultLessons(teacher_id: str = None):
         teacher_lessons_coll: CollectionReference = teacher_ref.collection('lessons')        
         teacher_lesson_plans_coll: CollectionReference = teacher_ref.collection('lesson_plans')
         teacher_classes_coll: CollectionReference = teacher_ref.collection('classes')
+        
+        try:
+            # Add the default lessons if they're not already there
+            for template_lesson_id_str in template_lesson_ids:
+                [template_teacher_id, template_lesson_id] = template_lesson_id_str.split(':')
 
-        # Add the default lessons if they're not already there
-        for template_lesson_id_str in template_lesson_ids:
-            [template_teacher_id, template_lesson_id] = template_lesson_id_str.split(':')
+                if teacher.id == template_teacher_id:
+                    continue
 
-            if teacher.id == template_teacher_id:
-                continue
+                template_teacher_ref = db.collection('teachers').document(template_teacher_id)
+                template_lesson_ref: DocumentReference = template_teacher_ref.collection('lessons').document(template_lesson_id)
+                template_lesson: DocumentSnapshot = template_lesson_ref.get()
+                template_lesson_plans_coll: CollectionReference = template_teacher_ref.collection('lesson_plans')
+                template_lesson_plan: DocumentSnapshot = template_lesson_plans_coll.document(template_lesson.to_dict().get('lesson_plan_id')).get()
+                template_classes_coll: CollectionReference = template_teacher_ref.collection('classes')
+                template_class_ref = template_classes_coll.document(template_lesson.to_dict().get('class_id'))
+                template_class: DocumentSnapshot = template_class_ref.get()
+                template_students_coll: CollectionReference = template_class_ref.collection('students')
+                template_students_snap: list[DocumentSnapshot] = list(template_students_coll.stream())
+                template_students = [Student(**student.to_dict()) for student in template_students_snap]
 
-            template_teacher_ref = db.collection('teachers').document(template_teacher_id)
-            template_lesson_ref: DocumentReference = template_teacher_ref.collection('lessons').document(template_lesson_id)
-            template_lesson: DocumentSnapshot = template_lesson_ref.get()
-            template_lesson_plans_coll: CollectionReference = template_teacher_ref.collection('lesson_plans')
-            template_lesson_plan: DocumentSnapshot = template_lesson_plans_coll.document(template_lesson.to_dict().get('lesson_plan_id')).get()
-            template_classes_coll: CollectionReference = template_teacher_ref.collection('classes')
-            template_class_ref = template_classes_coll.document(template_lesson.to_dict().get('class_id'))
-            template_class: DocumentSnapshot = template_class_ref.get()
-            template_students_coll: CollectionReference = template_class_ref.collection('students')
-            template_students_snap: list[DocumentSnapshot] = list(template_students_coll.stream())
-            template_students = [Student(**student.to_dict()) for student in template_students_snap]
+                # if template_lesson_id not in teacher_lesson_ids:
+                tl_data = template_lesson.to_dict()
+                tl_data['teacher_email'] = teacher.email_address
+                tl_data['teacher_name'] = teacher.nickname
+                teacher_lessons_coll.document(template_lesson_id).set(document_data=tl_data)
+                print(f"wrote lesson {tl_data} for teacher {teacher.email_address}")
 
-            # if template_lesson_id not in teacher_lesson_ids:
-            tl_data = template_lesson.to_dict()
-            tl_data['teacher_email'] = teacher.email_address
-            tl_data['teacher_name'] = teacher.nickname
-            teacher_lessons_coll.document(template_lesson_id).set(document_data=tl_data)
-            print(f"wrote lesson {tl_data} for teacher {teacher.email_address}")
+                template_responses_coll: CollectionReference = template_lesson_ref.collection('responses')
+                template_responses_snap: list[DocumentSnapshot] = list(template_responses_coll.stream())
+                template_responses = [LessonResponse(**response.to_dict()) for response in template_responses_snap]
+                teacher_responses_coll: CollectionReference = teacher_lessons_coll.document(template_lesson_id).collection('responses')
+                # DELETE ALL EXISTING RESPONSES
+                teacher_responses_existing = list(teacher_responses_coll.stream())
+                for tre in teacher_responses_existing:
+                    teacher_responses_coll.document(tre.id).delete()
+                # resp_id_to_img_url: dict[str, str] = {}
+                for template_response in template_responses:
+                    tr_data = template_response.__dict__
+                    tr_data['teacher_email'] = teacher.email_address
+                    # # Convert the base64 images into uploaded images
+                    # resp_id_to_img_url[template_response.id] = template_response.response_image_url
+                    # if template_response.response_has_drawing and (
+                    #     template_response.response_image_base64 is not None and template_response.response_image_base64 != "" and (
+                    #         template_response.response_image_url is None or template_response.response_image_url == "")
+                    # ):
+                    #     if template_response.id not in resp_id_to_img_url or not resp_id_to_img_url[template_response.id]:
+                    #         blb = bucket.blob(f"default-teacher/student-responses/{template_response.id}_drawing_{datetime.now().isoformat()}.png")
+                    #         blb.upload_from_string(
+                    #             client=bucket.client,
+                    #             data=base64.b64decode(
+                    #                 template_response.response_image_base64.replace("data:image/png;base64,", "")
+                    #             ),
+                    #             content_type="image/png",
+                    #         )
+                    #         blb.make_public()
+                    #         resp_id_to_img_url[template_response.id] = blb.public_url
+                    #     tr_data['response_image_url'] = resp_id_to_img_url[template_response.id]
+                    #     tr_data['response_image_base64'] = None
+                    teacher_responses_coll.document(template_response.id).set(document_data=tr_data)
 
-            template_responses_coll: CollectionReference = template_lesson_ref.collection('responses')
-            template_responses_snap: list[DocumentSnapshot] = list(template_responses_coll.stream())
-            template_responses = [LessonResponse(**response.to_dict()) for response in template_responses_snap]
-            teacher_responses_coll: CollectionReference = teacher_lessons_coll.document(template_lesson_id).collection('responses')
-            # DELETE ALL EXISTING RESPONSES
-            teacher_responses_existing = list(teacher_responses_coll.stream())
-            for tre in teacher_responses_existing:
-                teacher_responses_coll.document(tre.id).delete()
-            # resp_id_to_img_url: dict[str, str] = {}
-            for template_response in template_responses:
-                tr_data = template_response.__dict__
-                tr_data['teacher_email'] = teacher.email_address
-                # # Convert the base64 images into uploaded images
-                # resp_id_to_img_url[template_response.id] = template_response.response_image_url
-                # if template_response.response_has_drawing and (
-                #     template_response.response_image_base64 is not None and template_response.response_image_base64 != "" and (
-                #         template_response.response_image_url is None or template_response.response_image_url == "")
-                # ):
-                #     if template_response.id not in resp_id_to_img_url or not resp_id_to_img_url[template_response.id]:
-                #         blb = bucket.blob(f"default-teacher/student-responses/{template_response.id}_drawing_{datetime.now().isoformat()}.png")
-                #         blb.upload_from_string(
-                #             client=bucket.client,
-                #             data=base64.b64decode(
-                #                 template_response.response_image_base64.replace("data:image/png;base64,", "")
-                #             ),
-                #             content_type="image/png",
-                #         )
-                #         blb.make_public()
-                #         resp_id_to_img_url[template_response.id] = blb.public_url
-                #     tr_data['response_image_url'] = resp_id_to_img_url[template_response.id]
-                #     tr_data['response_image_base64'] = None
-                teacher_responses_coll.document(template_response.id).set(document_data=tr_data)
+                # In the same way, add the lesson plan if it's not already there
+                template_lesson_plan_id = template_lesson.to_dict().get('lesson_plan_id')
+                # if template_lesson_plan_id not in teacher_lesson_plan_ids:
+                template_lesson_plan: DocumentSnapshot = template_lesson_plans_coll.document(template_lesson_plan_id).get()
+                tlp_data = template_lesson_plan.to_dict()
+                tlp_data['teacher_email'] = teacher.email_address
+                teacher_lesson_plans_coll.document(template_lesson_plan_id).set(document_data=tlp_data)
+                print(f"wrote lesson plan {tlp_data} for teacher {teacher.email_address}")
 
-            # In the same way, add the lesson plan if it's not already there
-            template_lesson_plan_id = template_lesson.to_dict().get('lesson_plan_id')
-            # if template_lesson_plan_id not in teacher_lesson_plan_ids:
-            template_lesson_plan: DocumentSnapshot = template_lesson_plans_coll.document(template_lesson_plan_id).get()
-            tlp_data = template_lesson_plan.to_dict()
-            tlp_data['teacher_email'] = teacher.email_address
-            teacher_lesson_plans_coll.document(template_lesson_plan_id).set(document_data=tlp_data)
-            print(f"wrote lesson plan {tlp_data} for teacher {teacher.email_address}")
+                template_questions_coll: CollectionReference = template_lesson_plans_coll.document(template_lesson_plan_id).collection('questions')
+                template_questions_snap: list[DocumentSnapshot] = list(template_questions_coll.stream())
+                template_questions = [LessonQuestion(**question.to_dict()) for question in template_questions_snap]
+                print(f"got template_questions: {template_questions}")
+                for template_question in template_questions:
+                    teacher_questions_coll: CollectionReference = teacher_lesson_plans_coll.document(template_lesson_plan_id).collection('questions')
+                    tq_data = template_question.__dict__
+                    tq_data['teacher_email'] = teacher.email_address
+                    print(f"got tq_data: {tq_data}")
+                    teacher_questions_coll.document(template_question.id).set(document_data=tq_data)
 
-            template_questions_coll: CollectionReference = template_lesson_plans_coll.document(template_lesson_plan_id).collection('questions')
-            template_questions_snap: list[DocumentSnapshot] = list(template_questions_coll.stream())
-            template_questions = [LessonQuestion(**question.to_dict()) for question in template_questions_snap]
-            for template_question in template_questions:
-                teacher_questions_coll: CollectionReference = teacher_lesson_plans_coll.document(template_lesson_plan_id).collection('questions')
-                tq_data = template_question.__dict__
-                tq_data['teacher_email'] = teacher.email_address
-                teacher_questions_coll.document(template_question.id).set(document_data=tq_data)
-
-            # if template_class_id not in teacher_class_ids:
-            template_class_id = template_lesson.to_dict().get('class_id')
-            template_class: DocumentSnapshot = template_classes_coll.document(template_class_id).get()
-            tc_data = template_class.to_dict()
-            tc_data['teacher_email'] = teacher.email_address
-            if not teacher_classes_coll.document(template_class_id).get().exists:
-                teacher_classes_coll.document(template_class_id).set(document_data=tc_data)
-                print(f"wrote class {tc_data} for teacher {teacher.email_address}")
-            for template_student in template_students:
-                teacher_students_coll: CollectionReference = teacher_classes_coll.document(template_class_id).collection('students')
-                ts_data = template_student.__dict__
-                ts_data['teacher_email'] = teacher.email_address
-                if not teacher_students_coll.document(template_student.id).get().exists:
-                    teacher_students_coll.document(template_student.id).set(document_data=ts_data)
-                    print(f"wrote student {ts_data} for teacher {teacher.email_address} and class {template_class_id}")
+                # if template_class_id not in teacher_class_ids:
+                template_class_id = template_lesson.to_dict().get('class_id')
+                template_class: DocumentSnapshot = template_classes_coll.document(template_class_id).get()
+                tc_data = template_class.to_dict()
+                tc_data['teacher_email'] = teacher.email_address
+                if not teacher_classes_coll.document(template_class_id).get().exists:
+                    teacher_classes_coll.document(template_class_id).set(document_data=tc_data)
+                    print(f"wrote class {tc_data} for teacher {teacher.email_address}")
+                for template_student in template_students:
+                    teacher_students_coll: CollectionReference = teacher_classes_coll.document(template_class_id).collection('students')
+                    ts_data = template_student.__dict__
+                    ts_data['teacher_email'] = teacher.email_address
+                    if not teacher_students_coll.document(template_student.id).get().exists:
+                        teacher_students_coll.document(template_student.id).set(document_data=ts_data)
+                        print(f"wrote student {ts_data} for teacher {teacher.email_address} and class {template_class_id}")
+        except Exception as e:
+            print(f"error configuring default lessons for teacher {teacher.email_address}: {e}")
+            return f"error: {e}"
             
 
     return "success"

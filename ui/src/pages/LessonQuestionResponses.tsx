@@ -43,8 +43,8 @@ const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, o
             ).on("drop", (el, source) => {
                 const newCatName = source.getAttribute("data-cat-name")!
                 const studentName = el.getAttribute("data-student-name")!
-                const oldCatName = Object.keys(responsesByCatName).find((catName) => responsesByCatName[catName].find((r) => r.student_name === studentName)) ?? ""
-                const response = responsesByCatName[oldCatName].find((r) => r.student_name === studentName)!
+                const oldCatName = Object.keys(responsesByCatName).find((catName) => responsesByCatName[catName].find((r) => r?.student_name === studentName)) ?? ""
+                const response = responsesByCatName[oldCatName].find((r) => r?.student_name === studentName)!
                 onReorderResponse(response.id, oldCatName, newCatName)
             })
         }
@@ -94,7 +94,7 @@ const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, o
                     style={{
                         minHeight: "100px",
                     }}>
-                    {responses.map((r) =>
+                    {responses.filter(r => r).map((r) =>
                         <div className="student-response"
                             key={r.student_name}
                             data-student-name={r.student_name}

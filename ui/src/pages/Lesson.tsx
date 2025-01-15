@@ -143,7 +143,7 @@ const Lesson: FC<LessonProps> = ({}) => {
     }, [lesson, lesson?.responses])
     const studentNamesFinishedByQID = useMemo(() => {
         if (lesson?.responses) {
-            return lesson.responses.reduce((acc, r) => {
+            return lesson.responses.filter(r => r).reduce((acc, r) => {
                 acc[r.question_id] = [...(acc[r.question_id] ?? []), r.student_name]
                 return acc
             }, {} as Record<string, string[]>)
@@ -350,7 +350,7 @@ const Lesson: FC<LessonProps> = ({}) => {
                                                     <td key={q.id} colSpan={4}
                                                         style={{ border: "1px solid #aaa", padding: "10px", fontSize: "1.4rem" }}>
                                                         {Object.entries(lesson.analysis_by_question_id![q.id]?.responses_by_category ?? {})
-                                                            .filter(([ _, resps ]) => resps?.find(r => r.student_name === student.nickname))
+                                                            .filter(([ _, resps ]) => resps?.find(r => r?.student_name === student.nickname))
                                                             .map(([cat]) => cat)
                                                             .join(", ")}
                                                     </td>
