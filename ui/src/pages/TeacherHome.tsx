@@ -373,9 +373,13 @@ const TeacherHome: FC = () => {
 								<div className="content-gutters">
 									<h1>Create your teacher account</h1>
 									<p>
-										<button onClick={() => setFirstTimeUser(false)}>I already have one</button>
+										<button onClick={() => setFirstTimeUser(false)}>
+											<span style={{ textDecoration: "underline" }}>
+												I already have one
+											</span>
+										</button>
 									</p>
-									<div role="form">
+									<div role="form" style={{ marginTop: "40px" }}>
 										<div>
 											<label htmlFor="email">Email</label>
 											<input
@@ -433,9 +437,13 @@ const TeacherHome: FC = () => {
 								<div className="content-gutters">
 									<h1>Sign into your teacher account</h1>
 									<p>
-										<button onClick={() => setFirstTimeUser(true)}>I don't have an account</button>
+										<button onClick={() => setFirstTimeUser(true)}>
+											<span style={{ textDecoration: "underline" }}>
+												I don't have an account
+											</span>
+										</button>
 									</p>
-									<div role="form">
+									<div role="form" style={{ marginTop: "40px" }}>
 										<div>
 											<label htmlFor="email">Email</label>
 											<input

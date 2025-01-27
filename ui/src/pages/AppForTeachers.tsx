@@ -14,7 +14,7 @@ const AppForTeachers: FC = () => {
 	}, [location.pathname])
 
 	return (
-		<div className="light">
+		<div className="light" style={{ width: "100%" }}>
 			<header>
 				<div className="page-content">
 					<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -39,10 +39,11 @@ const AppForTeachers: FC = () => {
 						<h1 style={{ fontSize: "1.6rem" }}>
 							Exploration and Categorization
 						</h1>
-						{user && (
+						{user ? (
 							<button
 								onClick={async () => {
 									await getAuth(firebaseApp).signOut()
+									window.location.href = "/"
 								}}
 								style={{
 									fontSize: "1.2rem",
@@ -50,12 +51,14 @@ const AppForTeachers: FC = () => {
 							>
 								Sign out
 							</button>
-						)}
+						) : <div style={{ width: "50px" }}></div>}
 					</div>
 				</div>
 			</header>
 			<div className="seek-page">
-				<Outlet />
+				<div style={{ maxWidth: "900px", margin: "auto" }}>
+					<Outlet />
+				</div>
 			</div>
 		</div>
 	)
