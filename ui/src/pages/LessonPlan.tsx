@@ -119,7 +119,7 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 					id: uuidv4(),
 					lesson_plan_id: lessonPlan.id,
 					teacher_email: user.email!,
-					body_text: "New question",
+					body_text: "",
 					media_content_urls: [],
 					context_material_urls: [],
 					created_at: new Date().toISOString(),
@@ -290,9 +290,9 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 													
 													<hr style={{ marginBottom: "30px" }} />
 
-													<p><b>{
+													{/* <p><b>{
 														i === 0 ? "Pre-conception question" : i === 1 ? "Post-conception question" : "Question " + (i + 1)
-													}</b></p>
+													}</b></p> */}
 													<h4 style={{
 														display: "flex",
 														justifyContent: "space-between",
@@ -300,7 +300,9 @@ const LessonPlan: FC<LessonPlanProps> = ({}) => {
 														marginBottom: "0px",
 													}}>
 														<textarea
-															placeholder="Enter your question here"
+															placeholder={`Enter your ${
+																i === 0 ? "pre-conception question" : i === 1 ? "post-conception question" : "next question"
+															} here`}
 															className="inline-input"
 															style={{ flexGrow: 1, minHeight: "3em" }}
 															value={lessonQuestionsCtrl[q.id].body_text}

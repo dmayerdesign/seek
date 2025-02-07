@@ -36,8 +36,8 @@ const AppForTeachers: FC = () => {
 								style={{ height: "18px", width: "auto", textShadow: "none" }}
 							/>
 						</button>
-						<h1 style={{ fontSize: "1.6rem" }}>
-							Exploration and Categorization
+						<h1 style={{ fontSize: "1.5rem", textAlign: "center" }}>
+							Exploration and Categorization&nbsp;&nbsp;•&nbsp;&nbsp;Dr. Jazlin Ebenezer
 						</h1>
 						{user ? (
 							<button

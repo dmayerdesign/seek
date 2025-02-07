@@ -88,7 +88,7 @@ const LessonQuestionForStudent: FC<LessonQuestionForStudentProps> = ({ lesson, s
             )}
         </div>
         <div style={{ maxWidth: "1000px", marginTop: "40px" }}>
-            <p>You may type and/or draw your response. Anything you type or draw will be submitted.</p>
+            <p>Please type a response in the text box, AND draw a response in the area below.</p>
             {/* <div style={{ display: "flex", gap: "20px", paddingBottom: "10px" }}>
                 <button onClick={() => setWhichInputShown("type")}
                     style={{ opacity: whichInputShown === "type" ? 1 : 0.5 }}>
