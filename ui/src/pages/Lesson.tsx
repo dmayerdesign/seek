@@ -1,25 +1,21 @@
+import { faTrashCan } from "@fortawesome/free-regular-svg-icons"
+import { faChevronLeft, faLink } from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import Chart, { ChartData } from "chart.js/auto"
+import { groupBy, isEqual, uniq, upperFirst } from "lodash"
 import {
-	createRef,
 	FC,
-	ForwardRefRenderFunction,
-	MutableRefObject,
 	useCallback,
 	useContext,
 	useEffect,
 	useMemo,
 	useRef,
-	useState,
+	useState
 } from "react"
-import { AppCtx, LessonPlanWithQuestions, LessonResponse, LessonWithResponses, TeacherData } from "../data-model"
 import { useNavigate, useParams } from "react-router-dom"
-import { parseISO } from "date-fns"
-import { groupBy, isEqual, set, uniq, upperFirst } from "lodash"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faTrashCan } from "@fortawesome/free-regular-svg-icons"
-import { faChevronLeft, faLink } from "@fortawesome/free-solid-svg-icons"
+import { AppCtx, LessonPlanWithQuestions, LessonResponse, LessonWithResponses, TeacherData } from "../data-model"
 import LessonQuestionResponses from "./LessonQuestionResponses"
-import Chart, { ChartData } from "chart.js/auto"
-import { getRelativePosition } from "chart.js/helpers"
+import { parseISO } from "date-fns"
 
 export interface LessonProps {}
 
@@ -208,13 +204,17 @@ const Lesson: FC<LessonProps> = ({}) => {
 	// }, [lesson?.student_names_started, studentNamesFinished])
 	const chartCanvasRef = useRef<HTMLCanvasElement>(null)
 	const [chart, setChart] = useState<Chart>()
+	const numStudentParticipants = useMemo(
+		() => Math.max(...Object.values(studentNamesFinishedByQID).map(names => names.length)),
+		[studentNamesFinishedByQID],
+	)
+	const allCategories = useMemo(() => uniq(
+		Object.values(lesson?.analysis_by_question_id ?? {}).flatMap((analysis) =>
+			Object.keys(analysis?.responses_by_category ?? {}),
+		),
+	), [lesson?.analysis_by_question_id])
 	useEffect(() => {
 		if (chartCanvasRef.current && lesson && lessonPlan && !chart) {
-			const allCategories = uniq(
-				Object.values(lesson?.analysis_by_question_id ?? {}).flatMap((analysis) =>
-					Object.keys(analysis?.responses_by_category ?? {}),
-				),
-			)
 			const datasets = Object.keys(lesson?.analysis_by_question_id ?? {})?.map((qid, i) => ({
 				label:
 					i === 0
@@ -253,7 +253,7 @@ const Lesson: FC<LessonProps> = ({}) => {
 				}),
 			)
 		}
-	}, [chartCanvasRef, lesson, lessonPlan, lesson?.analysis_by_question_id, chart])
+	}, [chartCanvasRef, lesson, lessonPlan, allCategories, chart])
 
 	// Poll for lesson responses
 	// useEffect(() => {
@@ -285,6 +285,33 @@ const Lesson: FC<LessonProps> = ({}) => {
 	// }, [lesson, lesson?.analysis_by_question_id, callCloudFunction])
 	const [deleting, setDeleting] = useState(false)
 	const [copiedLink, setCopiedLink] = useState(false)
+
+	const renderQuestionResponseTableCell = useCallback((r?: LessonResponse) => (
+		r && <div
+			className="student-response"
+			key={r.student_name}
+			data-student-name={r.student_name}
+			style={{
+				marginBottom: "10px",
+				padding: "20px",
+				borderRadius: "10px",
+				background: "#fff",
+			}}
+		>
+			<div>
+				{r.response_image_url && (
+					<div style={{ width: "100%", maxWidth: "300px", overflow: "hidden" }}>
+						<img
+							src={r.response_image_url}
+							alt={r.analysis!.response_summary}
+							style={{ height: "100px", width: "auto" }}
+						/>
+					</div>
+				)}
+				<p style={{ fontSize: "1.1rem" }}>{r.response_text}</p>
+			</div>
+		</div>
+	), [])
 
 	return (
 		<div className="light">
@@ -379,6 +406,81 @@ const Lesson: FC<LessonProps> = ({}) => {
 												<div className="charts" style={{ width: "100%", height: "300px" }}>
 													<canvas id="chart-canvas" ref={chartCanvasRef}></canvas>
 												</div>
+
+												<h2>Responses by category &ndash; summary (n = {numStudentParticipants})</h2>
+
+												<div style={{ margin: "30px 0 40px" }}>
+													<table>
+														<thead>
+															<tr>
+																<th colSpan={4} style={{ color: "#444" }}>
+																	Descriptive category
+																</th>
+																{Object.keys(lesson?.analysis_by_question_id ?? {})?.map((qid, i) => <>
+																	<th key={qid} colSpan={2} style={{ color: "#444" }}>
+																		{i === 0
+																			? "Pre-conception"
+																			: i === 1
+																				? "Post-conception"
+																				: "Question " + (i + 1)} responses
+																	</th>
+																</>)}
+																{Object.keys(lesson?.analysis_by_question_id ?? {})?.map((qid, i) => <>
+																	<th key={qid} colSpan={2} style={{ color: "#444" }}>
+																		Freq. in {i === 0
+																			? "pre-conception"
+																			: i === 1
+																				? "post-conception"
+																				: "question " + (i + 1)} responses
+																	</th>
+																</>)}
+															</tr>
+														</thead>
+														<tbody>
+															{allCategories?.map((cat) => <tr key={cat}>
+																<td colSpan={4}
+																	style={{
+																		border: "1px solid #aaa",
+																		padding: "10px",
+																		fontSize: "1.4rem",
+																	}}>
+																	{cat}
+																</td>
+																{Object.keys(lesson?.analysis_by_question_id ?? {})?.map((qid, i) => <>
+																	<td key={qid}
+																		colSpan={2}
+																		style={{
+																			border: "1px solid #aaa",
+																			padding: "10px",
+																			fontSize: "1.4rem",
+																		}}
+																	>{
+																		lesson?.analysis_by_question_id?.[qid]?.responses_by_category?.[cat]
+																			?.map(r => r.student_name)
+																			?.join(", ")
+																	}</td>
+																</>)}
+																{Object.keys(lesson?.analysis_by_question_id ?? {})?.map((qid, i) => <>
+																	<td key={qid}
+																		colSpan={2}
+																		style={{
+																			border: "1px solid #aaa",
+																			padding: "10px",
+																			fontSize: "1.4rem",
+																			textAlign: "center",
+																		}}
+																	>{
+																		lesson?.analysis_by_question_id?.[qid]?.responses_by_category?.[cat]
+																			?.length
+																	}</td>
+																</>)}
+															</tr>)}
+														</tbody>
+													</table>
+												</div>
+												<hr />
+
+												<h2>Responses &ndash; summary table</h2>
 												<div style={{ margin: "30px 0 40px" }}>
 													<table>
 														<thead>
@@ -424,19 +526,28 @@ const Lesson: FC<LessonProps> = ({}) => {
 																				fontSize: "1.4rem",
 																			}}
 																		>
-																			{Object.entries(
-																				lesson.analysis_by_question_id![q.id]
-																					?.responses_by_category ?? {},
-																			)
-																				.filter(([_, resps]) =>
-																					resps?.find(
-																						(r) =>
-																							r?.student_name ===
-																							student.nickname,
-																					),
+																			<div>
+																				{Object.entries(
+																					lesson.analysis_by_question_id![q.id]
+																						?.responses_by_category ?? {},
 																				)
-																				.map(([cat]) => cat)
-																				.join(", ")}
+																					.filter(([_, resps]) =>
+																						resps?.find(
+																							(r) =>
+																								r?.student_name ===
+																								student.nickname,
+																						),
+																					)
+																					.map(([cat]) => cat)
+																					.join(", ")}
+																			</div>
+																			{renderQuestionResponseTableCell(
+																				lesson.responses?.find(
+																					(r) =>
+																						r.student_name === student.nickname &&
+																						r.question_id === q.id,
+																				)!,
+																			)}
 																		</td>
 																	))}
 																</tr>
@@ -450,16 +561,16 @@ const Lesson: FC<LessonProps> = ({}) => {
 
 									{lessonPlan?.questions?.map((q, i) => (
 										<div key={q.id} style={{ marginBottom: "60px" }}>
-											<h3 style={{ marginTop: "35px" }}>
-												<small className="supertitle">
-													{i === 0
-														? "Pre-conception question"
-														: i === 1
-															? "Post-conception question"
-															: "Question " + (i + 1)}
+											<h2 style={{ marginTop: "35px" }}>
+												{i === 0
+													? "Pre-conception question"
+													: i === 1
+														? "Post-conception question"
+														: "Question " + (i + 1)}
+												<small style={{ marginTop: "5px" }}>
+													{q.body_text}
 												</small>
-												{q.body_text}
-											</h3>
+											</h2>
 
 											<div>
 												{!responsesByQID[q.id]?.length && (
@@ -566,6 +677,10 @@ const Lesson: FC<LessonProps> = ({}) => {
 													)}
 
 												<div style={{ marginTop: "-15px" }}>
+													<hr />
+													<h3>Responses by category</h3>
+													<p style={{ marginTop: "-10px" }}>with images enlarged</p>
+													<p><small>Tip: hover over a drawing to see how it was interpreted by the AI</small></p>
 													{lesson.analysis_by_question_id?.[q.id]?.responses_by_category && (
 														<LessonQuestionResponses
 															analysis={lesson.analysis_by_question_id![q.id]}

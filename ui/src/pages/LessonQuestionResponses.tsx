@@ -56,9 +56,6 @@ const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, o
 
 	return (
 		<div className="question-responses" style={{ marginTop: "40px" }}>
-			<hr />
-			<h2>Responses by category</h2>
-
 			{responsesByCatNameCtrl?.map(({ catName, responses }) => (
 				<div
 					key={catName}
@@ -134,23 +131,18 @@ const LessonQuestionResponses: FC<LessonQuestionResponsesProps> = ({ analysis, o
 												<FontAwesomeIcon icon={faGripLines} style={{ pointerEvents: "none" }} />
 											</span>
 										</p>
-										<div
-											style={{
-												display: "flex",
-												justifyContent: "space-between",
-												gap: "20px",
-											}}
-										>
+										<div>
 											{r.response_image_url && (
-												<div style={{ height: "200px", flexBasis: "300px", minWidth: "300px" }}>
+												<div style={{ width: "100%", height: "auto" }}>
 													<img
 														src={r.response_image_url}
 														alt={r.analysis!.response_summary}
+														title={r.analysis!.response_summary}
 														style={{ width: "100%", height: "auto" }}
 													/>
 												</div>
 											)}
-											<p style={{ fontSize: "1.1rem" }}>{r.analysis!.response_summary}</p>
+											<p>{r.response_text}</p>
 										</div>
 									</div>
 								))}

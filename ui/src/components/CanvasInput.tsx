@@ -117,6 +117,7 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 	// }, [ctx.current, w.current, h.current])
 
 	const [cfd, setCfd] = useState<CanvasFreeDrawing | null>(null)
+	const [color, setColor] = useState("rgb(0,0,0)")
 	useEffect(() => {
 		if (canvasRef.current) {
 			const _cfd = new CanvasFreeDrawing({
@@ -160,7 +161,7 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 					style={{ display: "flex", gap: "40px", alignItems: "center", padding: "15px 0" }}
 				>
 					<div className="stroke-width-select" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-						{[4, 8, 12, 24, 36].map((width) => (
+						{[4, 8, 12, 24, 36, 48, 72].map((width) => (
 							<button
 								key={`${width}`}
 								onClick={() => {
@@ -168,10 +169,11 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 									cfd?.setLineWidth(width)
 								}}
 								style={{
-									width: width * 1.5 + "px",
-									height: width * 1.5 + "px",
+									width: width * 1.1 + "px",
+									height: width * 1.1 + "px",
 									borderRadius: "50%",
-									background: "#eee",
+									// background: "#eee",
+									background: color,
 									border: "none",
 								}}
 							/>
@@ -179,37 +181,36 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 					</div>
 					<div className="color-select">
 						{[
-							[0, 0, 0],
-							[255, 255, 255],
-							[255, 0, 0],
-							[255, 215, 0],
-							[255, 255, 0],
-							[127, 255, 0],
-							[0, 128, 0],
-							[0, 255, 127],
-							[128, 128, 0],
-							[85, 107, 47],
-							[0, 255, 255],
-							[175, 238, 238],
-							[176, 224, 230],
-							[30, 144, 255],
-							[65, 105, 225],
-							[0, 0, 128],
-							[123, 104, 238],
-							[106, 90, 205],
-							[238, 130, 238],
-							[186, 85, 211],
-							[153, 50, 204],
-							[240, 248, 255],
-							[245, 245, 220],
-							[250, 235, 215],
-							[169, 169, 169],
-							[128, 128, 128],
+							[0, 0, 0], // Black (text, outlines)
+							[255, 255, 255], // White (background, highlights)
+							[255, 69, 0], // Bright Red-Orange (temperature, heat)
+							[255, 80, 80], // Alert Red (warnings, heat, biological emphasis)
+							[200, 50, 50], // Dark Red (danger, heat maps)
+							[255, 150, 0], // Orange (caution, transitions)
+							[255, 200, 0], // Golden Yellow (energy, light, important highlights)
+							[255, 255, 160], // Soft Yellow (subtle highlights, background)
+							[50, 205, 50], // Lime Green (plant life, biology)
+							[0, 200, 0], // Green (biology, environment, life sciences)
+							[140, 70, 20], // Earth Brown (geology, natural elements)
+							[210, 180, 140], // Tan (earth sciences, sedimentary layers)
+							[90, 200, 250], // Cyan Blue (cool elements, water, atmosphere)
+							[30, 144, 255], // Dodger Blue (water, atmospheric elements)
+							[0, 150, 255], // Science Blue (general emphasis)
+							[70, 70, 255], // Strong Blue (electricity, high energy)
+							[0, 0, 128], // Deep Navy Blue (depth, space, structure)
+							[80, 0, 160], // Deep Violet (contrast, advanced concepts)
+							[75, 0, 130], // Indigo (deep space, physics, theoretical concepts)
+							[190, 90, 255], // Purple (mystery, deep space, chemistry)
+							[255, 110, 180], // Pink (biological emphasis, cells, organic matter)
+							[255, 240, 230], // Soft Off-White (background variation)
+							[245, 222, 179], // Wheat (neutral backgrounds)
+							[160, 160, 160], // Neutral Gray (for balance, shading)
+							[169, 169, 169], // Dark Gray (structural elements, shadows)
 						].map((c) => (
 							<button
 								key={JSON.stringify(c)}
 								onClick={() => {
-									// color.current = `rgb(${c.join(",")})`
+									setColor(`rgb(${c.join(",")})`)
 									cfd?.setDrawingColor(c)
 								}}
 								style={{
