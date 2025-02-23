@@ -31,9 +31,12 @@ const AppForStudents: FC = () => {
 			e.preventDefault()
 		})
 	}, [])
-	const submitResponse = useCallback(async (response: LessonResponse) => {
-		callCloudFunction("putLessonResponse", response)
-	}, [lessonId])
+	const submitResponse = useCallback(
+		async (response: LessonResponse) => {
+			callCloudFunction("putLessonResponse", response)
+		},
+		[lessonId],
+	)
 	const questionsToShow = useMemo(() => {
 		// Show questions starting at the first un-analyzed one
 		const l = lesson as LessonWithResponses
@@ -52,26 +55,25 @@ const AppForStudents: FC = () => {
 		<div className="dark">
 			<header>
 				<div className="page-content">
-				<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-					<img
-						src="/seek-logo-light.png"
-						className="seek-logo"
-						style={{ height: "18px", width: "auto", textShadow: "none" }}
-						alt="SEEK"
-					/>
-					{studentUser && <>
-						Hello, {studentUser}!
-					</>}
+					<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+						<img
+							src="/seek-logo-light.png"
+							className="seek-logo"
+							style={{ height: "18px", width: "auto", textShadow: "none" }}
+							alt="SEEK"
+						/>
+						{studentUser && <>Hello, {studentUser}!</>}
+					</div>
 				</div>
-			</div>
 			</header>
-			{!lesson
-				? <div className="seek-page">
+			{!lesson ? (
+				<div className="seek-page">
 					<div className="page-content">
 						<p>Loading (please be patient)...</p>
 					</div>
 				</div>
-				: <>
+			) : (
+				<>
 					<div className="seek-page">
 						<div className="page-content">
 							{!studentUser && (
@@ -103,26 +105,29 @@ const AppForStudents: FC = () => {
 									</select>
 								</section>
 							)}
-							{student && <>
-								<section style={{ padding: "0" }}>
-									<h1>{lesson.lesson_plan_name}</h1>
-									<p>Teacher: {lesson.teacher_name}</p>
-									<p>Class: {lesson.class_name}</p>
-								</section>
-								{questionsToShow.map((question) => (
-									<section key={question.id} style={{ padding: "0" }}>
-										<LessonQuestionForStudent
-											lesson={lesson}
-											question={question}
-											student={student}
-											submitResponse={submitResponse}
-										/>
+							{student && (
+								<>
+									<section style={{ padding: "0" }}>
+										<h1>{lesson.lesson_plan_name}</h1>
+										<p>Teacher: {lesson.teacher_name}</p>
+										<p>Class: {lesson.class_name}</p>
 									</section>
-								))}
-							</>}
+									{questionsToShow.map((question) => (
+										<section key={question.id} style={{ padding: "0" }}>
+											<LessonQuestionForStudent
+												lesson={lesson}
+												question={question}
+												student={student}
+												submitResponse={submitResponse}
+											/>
+										</section>
+									))}
+								</>
+							)}
 						</div>
 					</div>
-				</>}
+				</>
+			)}
 		</div>
 	)
 }

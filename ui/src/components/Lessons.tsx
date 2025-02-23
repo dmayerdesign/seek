@@ -1,29 +1,29 @@
-import { faPlay } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { MD5 } from "crypto-js";
-import { Dispatch, FC, SetStateAction, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { v4 as uuidv4 } from "uuid";
-import { AppCtx, Class, LessonPlan, LessonWithResponses, TeacherData } from "../data-model";
-import { parseISO } from "date-fns";
+import { faPlay } from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { MD5 } from "crypto-js"
+import { Dispatch, FC, SetStateAction, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { v4 as uuidv4 } from "uuid"
+import { AppCtx, Class, LessonPlan, LessonWithResponses, TeacherData } from "../data-model"
+import { parseISO } from "date-fns"
 
 export interface LessonsProps {
-    teacherData: TeacherData
-    setTeacherData: Dispatch<SetStateAction<TeacherData|null|undefined>>
-    refreshTeacherData: () => Promise<void>
+	teacherData: TeacherData
+	setTeacherData: Dispatch<SetStateAction<TeacherData | null | undefined>>
+	refreshTeacherData: () => Promise<void>
 }
 
 const Lessons: FC<LessonsProps> = ({ teacherData, setTeacherData, refreshTeacherData }) => {
-    const { user, callCloudFunction } = useContext(AppCtx)!
+	const { user, callCloudFunction } = useContext(AppCtx)!
 	const navigate = useNavigate()
 
-    // Lessons CRUD
+	// Lessons CRUD
 	const [lessonsCtrl, setLessonsCtrl] = useState<Record<string, LessonWithResponses>>({})
 	useEffect(() => {
 		if (teacherData && teacherData.lessons) {
 			setLessonsCtrl(
 				teacherData.lessons
-					.sort((a, b) => a.created_at < b.created_at ? 1 : -1)
+					.sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
 					.reduce(
 						(acc, lp) => {
 							if (!lp.deleted) acc[lp.id] = lp
@@ -72,84 +72,97 @@ const Lessons: FC<LessonsProps> = ({ teacherData, setTeacherData, refreshTeacher
 	const [newLessonSelectedClassId, setNewLessonSelectedClassId] = useState<string>()
 	const [newLessonSelectedPlanId, setNewLessonSelectedPlanId] = useState<string>()
 	const newLessonSelectedClass = useMemo(
-		() => teacherData?.classes?.find(c => c.id === newLessonSelectedClassId),
+		() => teacherData?.classes?.find((c) => c.id === newLessonSelectedClassId),
 		[teacherData, newLessonSelectedClassId],
 	)
 	const newLessonSelectedPlan = useMemo(
-		() => teacherData?.lesson_plans?.find(p => p.id === newLessonSelectedPlanId),
+		() => teacherData?.lesson_plans?.find((p) => p.id === newLessonSelectedPlanId),
 		[teacherData, newLessonSelectedPlanId],
 	)
 
-    return <>
-		<div className="content-gutters">
-			<h2>Begin a lesson</h2>
-		</div>
-        <div className="content-gutters">
-			<div>
-				<div style={{ display: "flex", gap: "20px", marginBottom: "15px" }}>
+	return (
+		<>
+			<div className="content-gutters">
+				<h2>Begin a lesson</h2>
+			</div>
+			<div className="content-gutters">
+				<div>
+					<div style={{ display: "flex", gap: "20px", marginBottom: "15px" }}>
+						<select
+							id="begin-lesson-plan-select"
+							className="inline-select"
+							value={newLessonSelectedPlanId}
+							onChange={(e) => setNewLessonSelectedPlanId(e.target.value)}
+							style={{ maxWidth: "400px" }}
+						>
+							<option value={undefined}>Select a lesson plan</option>
+							{teacherData?.lesson_plans?.map((p) => (
+								<option key={p.id} value={p.id}>
+									{p.title}
+								</option>
+							))}
+						</select>
 
-					<select id="begin-lesson-plan-select"
-						className="inline-select"
-						value={newLessonSelectedPlanId}
-						onChange={(e) => setNewLessonSelectedPlanId(e.target.value)}
-						style={{ maxWidth: "400px" }}>
-						<option value={undefined}>Select a lesson plan</option>
-						{teacherData?.lesson_plans?.map(p => (
-							<option key={p.id} value={p.id}>{p.title}</option>
-						))}
-					</select>
+						{newLessonSelectedPlan && (
+							<select
+								id="begin-lesson-class-select"
+								className="inline-select"
+								value={newLessonSelectedClassId}
+								onChange={(e) => setNewLessonSelectedClassId(e.target.value)}
+								style={{ maxWidth: "200px" }}
+							>
+								<option value="">Select a class</option>
+								{teacherData?.classes?.map((c) => (
+									<option key={c.id} value={c.id}>
+										{c.name}
+									</option>
+								))}
+							</select>
+						)}
 
-					{newLessonSelectedPlan &&
-					<select id="begin-lesson-class-select"
-						className="inline-select"
-						value={newLessonSelectedClassId}
-						onChange={(e) => setNewLessonSelectedClassId(e.target.value)}
-						style={{ maxWidth: "200px" }}>
-						<option value="">Select a class</option>
-						{teacherData?.classes?.map(c => (
-							<option key={c.id} value={c.id}>{c.name}</option>
-						))}
-					</select>}
-
-					{newLessonSelectedClass && newLessonSelectedPlan &&
-					<button
-						style={{ marginLeft: "20px" }}
-						onClick={() => createLesson(newLessonSelectedPlan, newLessonSelectedClass)
-							.then((_lesson) => {
-								if (_lesson) {
-									navigate("/for-teachers/lessons/" + _lesson.id)
+						{newLessonSelectedClass && newLessonSelectedPlan && (
+							<button
+								style={{ marginLeft: "20px" }}
+								onClick={() =>
+									createLesson(newLessonSelectedPlan, newLessonSelectedClass)
+										.then((_lesson) => {
+											if (_lesson) {
+												navigate("/for-teachers/lessons/" + _lesson.id)
+											}
+										})
+										.catch((e) => console.error(e))
 								}
-							})
-							.catch((e) => console.error(e))
-						}
-					>
-						<FontAwesomeIcon icon={faPlay} />&nbsp;
-						Begin lesson
-					</button>}
+							>
+								<FontAwesomeIcon icon={faPlay} />
+								&nbsp; Begin lesson
+							</button>
+						)}
+					</div>
 				</div>
 			</div>
-        </div>
 
-		<hr />
-
-		<div className="content-gutters">
-			<h2>All lessons</h2>
 			<hr />
-			{teacherData?.lessons?.map((l) => lessonsCtrl[l.id] && (
-				<div key={l.id}
-					style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-					<h3 style={{ flexGrow: 1 }}>
-						<a href={`/for-teachers/lessons/${l.id}`}>
-							{lessonsCtrl[l.id].lesson_name}
-						</a>
-					</h3>
-					<small>
-						Created {parseISO(lessonsCtrl[l.id].created_at).toLocaleString()}
-					</small>
-				</div>
-			))}
-		</div>
-    </>
+
+			<div className="content-gutters">
+				<h2>All lessons</h2>
+				<hr />
+				{teacherData?.lessons?.map(
+					(l) =>
+						lessonsCtrl[l.id] && (
+							<div
+								key={l.id}
+								style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+							>
+								<h3 style={{ flexGrow: 1 }}>
+									<a href={`/for-teachers/lessons/${l.id}`}>{lessonsCtrl[l.id].lesson_name}</a>
+								</h3>
+								<small>Created {parseISO(lessonsCtrl[l.id].created_at).toLocaleString()}</small>
+							</div>
+						),
+				)}
+			</div>
+		</>
+	)
 }
 
 export default Lessons

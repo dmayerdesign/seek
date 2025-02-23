@@ -235,33 +235,36 @@ export default class CanvasFreeDrawing {
 	}
 
 	mouseDown(event: MouseEvent): void {
-		console.log("mouseDown", event)
+		const boundingClient = this.canvas.getBoundingClientRect()
+		// console.log("mouseDown", event.offsetY)
+		console.log("mouseDown -> clientY", event.clientY, boundingClient.y, event.pageY, event.offsetY)
 		if (event.button !== 0) return
 		this.drawPoint(event.offsetX, event.offsetY)
 	}
 
 	mouseMove(event: MouseEvent): void {
-		console.log("mouseMove", event)
 		this.drawLine(event.offsetX, event.offsetY, event)
 	}
 
 	touchStart(event: TouchEvent): void {
 		if (event.changedTouches.length > 0) {
-			const { pageX, pageY, identifier } = event.changedTouches[0]
+			const { pageX, pageY, clientX, clientY, identifier } = event.changedTouches[0]
 			const boundingClient = this.canvas.getBoundingClientRect()
-			const x = pageX - boundingClient.left
-			const y = pageY - boundingClient.top
+			console.log("touchStart -> clientY", clientY, boundingClient.y, pageY, pageY - boundingClient.y)
+			const x = clientX - boundingClient.x
+			const y = clientY - boundingClient.y
 			this.touchIdentifier = identifier
 			this.drawPoint(x, y)
+			event.preventDefault()
 		}
 	}
 
 	touchMove(event: TouchEvent): void {
 		if (event.changedTouches.length > 0) {
-			const { pageX, pageY, identifier } = event.changedTouches[0]
+			const { pageX, pageY, clientX, clientY, identifier } = event.changedTouches[0]
 			const boundingClient = this.canvas.getBoundingClientRect()
-			const x = pageX - boundingClient.left
-			const y = pageY - boundingClient.top
+			const x = clientX - boundingClient.x
+			const y = clientY - boundingClient.y
 
 			// check if is multi touch, if it is do nothing
 			if (identifier != this.touchIdentifier) return
@@ -269,10 +272,12 @@ export default class CanvasFreeDrawing {
 			this.previousX = x
 			this.previousY = y
 			this.drawLine(x, y, event)
+			event.preventDefault()
 		}
 	}
 
 	touchEnd(event: TouchEvent): void {
+		event.preventDefault()
 		this.handleEndDrawing()
 		this.canvas.dispatchEvent(this.events.touchEndEvent)
 	}

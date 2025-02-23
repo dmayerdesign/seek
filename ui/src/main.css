@@ -52,7 +52,7 @@ header {
 }
 
 section {
-    margin: 3rem 0;
+	margin: 3rem 0;
 	border-radius: 2rem;
 	padding: 0.5rem 0 2rem 0;
 }
@@ -68,13 +68,15 @@ section {
 	* {
 		color: #222;
 	}
-	h1, h2 {
+	h1,
+	h2 {
 		color: #111;
 	}
 	h3 {
 		color: #222;
 	}
-	h4, h5 {
+	h4,
+	h5 {
 		color: #333;
 	}
 	hr {
@@ -111,7 +113,7 @@ section {
 		}
 	}
 	.faint-bg {
-		background: rgba(5,10,15,0.05);
+		background: rgba(5, 10, 15, 0.05);
 	}
 }
 .dark {
@@ -127,7 +129,8 @@ section {
 	h3 {
 		color: #ccc;
 	}
-	h4, h5 {
+	h4,
+	h5 {
 		color: #bbb;
 	}
 	hr {
@@ -331,7 +334,7 @@ li {
 .light svg,
 .dark svg {
 	color: inherit;
-	
+
 	path {
 		color: inherit;
 	}
@@ -357,9 +360,13 @@ button * {
 a {
 	text-decoration: underline !important;
 }
-h1 button, h1 a,
-h2 button, h2 a,
-h3 button, h3 a,
-h4 button, h4 a {
+h1 button,
+h1 a,
+h2 button,
+h2 a,
+h3 button,
+h3 a,
+h4 button,
+h4 a {
 	text-transform: inherit !important;
 }

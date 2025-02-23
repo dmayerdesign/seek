@@ -51,7 +51,9 @@ const AppForTeachers: FC = () => {
 							>
 								Sign out
 							</button>
-						) : <div style={{ width: "50px" }}></div>}
+						) : (
+							<div style={{ width: "50px" }}></div>
+						)}
 					</div>
 				</div>
 			</header>

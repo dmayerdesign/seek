@@ -115,7 +115,6 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 	// 	}
 	// 	onClear()
 	// }, [ctx.current, w.current, h.current])
-	
 
 	const [cfd, setCfd] = useState<CanvasFreeDrawing | null>(null)
 	useEffect(() => {
@@ -124,7 +123,7 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 				elementId: id + "_cfd",
 				width: 1000,
 				height: 700,
-				showWarnings: true
+				showWarnings: true,
 			})
 			_cfd.strokeColor = [0, 0, 0]
 			_cfd.lineWidth = 4
@@ -148,24 +147,29 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 
 	return (
 		<>
-			<div id="canvas-container"
+			<div
+				id="canvas-container"
 				ref={containerRef}
 				style={{
 					position: "relative",
 					// height: "700px",
 				}}
 			>
-				<div className="color-and-stroke" style={{ display: "flex", gap: "40px", alignItems: "center", padding: "15px 0" }}>
+				<div
+					className="color-and-stroke"
+					style={{ display: "flex", gap: "40px", alignItems: "center", padding: "15px 0" }}
+				>
 					<div className="stroke-width-select" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
 						{[4, 8, 12, 24, 36].map((width) => (
-							<button key={`${width}`}
+							<button
+								key={`${width}`}
 								onClick={() => {
 									// lineWidth.current = width
 									cfd?.setLineWidth(width)
 								}}
 								style={{
-									width: (width * 1.5) + "px",
-									height: (width * 1.5) + "px",
+									width: width * 1.5 + "px",
+									height: width * 1.5 + "px",
 									borderRadius: "50%",
 									background: "#eee",
 									border: "none",
@@ -175,12 +179,35 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 					</div>
 					<div className="color-select">
 						{[
-							  [0,0,0],
-							  [231, 214, 206],[166, 152, 168],[80, 194, 54],[21, 133, 111],[35, 78, 0],
-							  [247, 246, 182],[239, 195, 6],[167, 85, 66],[2, 85, 147],[67, 68, 129],
-							  [254, 108, 83],[241, 46, 56],[216, 35, 83],[235, 139, 142],[181, 31, 143],
-						].map(c => (
-							<button key={JSON.stringify(c)}
+							[0, 0, 0],
+							[255, 255, 255],
+							[255, 0, 0],
+							[255, 215, 0],
+							[255, 255, 0],
+							[127, 255, 0],
+							[0, 128, 0],
+							[0, 255, 127],
+							[128, 128, 0],
+							[85, 107, 47],
+							[0, 255, 255],
+							[175, 238, 238],
+							[176, 224, 230],
+							[30, 144, 255],
+							[65, 105, 225],
+							[0, 0, 128],
+							[123, 104, 238],
+							[106, 90, 205],
+							[238, 130, 238],
+							[186, 85, 211],
+							[153, 50, 204],
+							[240, 248, 255],
+							[245, 245, 220],
+							[250, 235, 215],
+							[169, 169, 169],
+							[128, 128, 128],
+						].map((c) => (
+							<button
+								key={JSON.stringify(c)}
 								onClick={() => {
 									// color.current = `rgb(${c.join(",")})`
 									cfd?.setDrawingColor(c)
@@ -211,33 +238,30 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 							background: "white",
 						}}
 					/> */}
-					<canvas
-						id={id + "_cfd"}
-						ref={canvasRef}
-					/>
+					<canvas id={id + "_cfd"} ref={canvasRef} />
 				</div>
 				<div
 					style={{
 						position: "absolute",
 						zIndex: 100,
-						bottom: (700 - 25) + "px",
+						bottom: 700 - 25 + "px",
 						right: "15px",
-						width: "100%",
 						textAlign: "right",
 					}}
 				>
-					<button onClick={() => {
-						if (window.confirm("Erase your drawing and start over? This cannot be undone.")) {
-							clearAll()
-						}
-					}}
+					<button
+						onClick={() => {
+							if (window.confirm("Erase your drawing and start over? This cannot be undone.")) {
+								clearAll()
+							}
+						}}
 						style={{
 							fontSize: "12px",
-						}}>
-						<FontAwesomeIcon icon={faTrashCan} style={{ color: "#222" }} />&nbsp;
-						<b style={{ color: "#222" }}>
-							Clear drawing
-						</b>
+						}}
+					>
+						<FontAwesomeIcon icon={faTrashCan} style={{ color: "#222" }} />
+						&nbsp;
+						<b style={{ color: "#222" }}>Clear drawing</b>
 					</button>
 				</div>
 			</div>
