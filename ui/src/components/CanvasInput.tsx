@@ -1,6 +1,7 @@
 import { faTrashCan } from "@fortawesome/free-regular-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import CanvasFreeDrawing, { AllowedEvents } from "canvas-free-drawing"
+import CanvasFreeDrawing, { AllowedEvents } from "./canvas-free-drawing-fork"
+// import CanvasFreeDrawing, { AllowedEvents } from "canvas-free-drawing"
 import { throttle } from "lodash"
 import { FC, MutableRefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 
@@ -128,9 +129,14 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 			_cfd.strokeColor = [0, 0, 0]
 			_cfd.lineWidth = 4
 			_cfd.on({ event: AllowedEvents.redraw }, () => {
+				// console.log("CanvasFreeDrawing redraw")
 				onDraw()
 			})
+			_cfd.on({ event: AllowedEvents.mousedown }, () => {
+				// console.log("CanvasFreeDrawing mousedown")
+			})
 			setCfd(_cfd)
+			console.log("CanvasFreeDrawing did initialize", _cfd)
 		}
 	}, [canvasRef.current])
 	const clearAll = useCallback(() => {
@@ -213,17 +219,25 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 				<div
 					style={{
 						position: "absolute",
-						top: "-33px",
+						zIndex: 100,
+						bottom: (700 - 25) + "px",
+						right: "15px",
 						width: "100%",
 						textAlign: "right",
 					}}
 				>
-					<button onClick={() => clearAll()}
+					<button onClick={() => {
+						if (window.confirm("Erase your drawing and start over? This cannot be undone.")) {
+							clearAll()
+						}
+					}}
 						style={{
 							fontSize: "12px",
 						}}>
-						<FontAwesomeIcon icon={faTrashCan} />&nbsp;
-						Clear and start over
+						<FontAwesomeIcon icon={faTrashCan} style={{ color: "#222" }} />&nbsp;
+						<b style={{ color: "#222" }}>
+							Clear drawing
+						</b>
 					</button>
 				</div>
 			</div>

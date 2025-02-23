@@ -328,9 +328,13 @@ li {
 	margin-bottom: 0.5rem;
 }
 
-svg,
-svg path {
-	color: inherit !important;
+.light svg,
+.dark svg {
+	color: inherit;
+	
+	path {
+		color: inherit;
+	}
 }
 
 .file-input-group {
@@ -348,7 +352,7 @@ svg path {
 	margin-bottom: 5px;
 }
 button * {
-	color: inherit !important;
+	color: inherit;
 }
 a {
 	text-decoration: underline !important;

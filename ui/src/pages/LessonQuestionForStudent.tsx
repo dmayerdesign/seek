@@ -1,11 +1,9 @@
 import { FC, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { AppCtx, LessonQuestion, LessonResponse, LessonWithResponses, Student } from "../data-model";
-import CanvasInput from "../components/CanvasInput";
-import { v4 } from "uuid";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHandPointer, faKeyboard } from "@fortawesome/free-regular-svg-icons";
-import { urlToFile } from "../utils";
 import { useLocation } from "react-router-dom";
+import { v4 } from "uuid";
+import CanvasInput from "../components/CanvasInput";
+import { AppCtx, LessonQuestion, LessonResponse, LessonWithResponses, Student } from "../data-model";
+import { urlToFile } from "../utils";
 
 
 export interface LessonQuestionForStudentProps {
