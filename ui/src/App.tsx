@@ -29,61 +29,63 @@ const App: React.FC = () => {
 			})
 		}
 	}, [firebaseApp])
-	const callCloudFunction = useCallback(async function<ReturnType = void>(
-		endpoint: string,
-		data?: any,
-		authorization?: string,
-	): Promise<ReturnType | null> {
-		try {
-			const headers: HeadersInit = {
-				"Content-Type": "application/json",
-				"Authorization": authorization ?? `Bearer ${await user?.getIdToken()}`,
+	const callCloudFunction = useCallback(
+		async function <ReturnType = void>(
+			endpoint: string,
+			data?: any,
+			authorization?: string,
+		): Promise<ReturnType | null> {
+			try {
+				const headers: HeadersInit = {
+					"Content-Type": "application/json",
+					"Authorization": authorization ?? `Bearer ${await user?.getIdToken()}`,
+				}
+				const response = await fetch(getApiUrl(endpoint), {
+					method: "POST",
+					headers,
+					body: JSON.stringify({ data }),
+				})
+				const json = await response.json()
+				const { error, result } = json
+				if (error) {
+					throw new Error(error)
+				}
+				return result
+			} catch (error) {
+				console.error(error)
+				throw error
 			}
-			const response = await fetch(getApiUrl(endpoint), {
-				method: "POST",
-				headers,
-				body: JSON.stringify({ data }),
-			})
-			const json = await response.json()
-			const { error, result } = json
-			if (error) {
-				throw new Error(error)
-			}
-			return result
-		} catch (error) {
-			console.error(error)
-			throw error
-		}
-	}, [user])
+		},
+		[user],
+	)
 	const uploadFile = useCallback((file: File, destFolder: string): Promise<string> => {
 		return new Promise<string>((resolve, reject) => {
 			const storage = getStorage(firebaseApp)
 			const storageRef = ref(storage, (destFolder + "/" + file.name).replace("//", "/"))
 			const uploadTask = uploadBytesResumable(storageRef, file)
-			uploadTask.on("state_changed",
+			uploadTask.on(
+				"state_changed",
 				(snapshot) => {
 					// Observe state change events such as progress, pause, and resume
 					// Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
 					const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
 					console.log("Upload is " + progress + "% done")
 					switch (snapshot.state) {
-					case "paused":
-						console.log("Upload is paused")
-						break
-					case "running":
-						console.log("Upload is running")
-						break
+						case "paused":
+							console.log("Upload is paused")
+							break
+						case "running":
+							console.log("Upload is running")
+							break
 					}
-				}, 
+				},
 				(error) => {
 					console.error("Upload failed", error)
 					reject(error)
-				}, 
+				},
 				() => {
-					getDownloadURL(uploadTask.snapshot.ref)
-						.then(resolve)
-						.catch(reject)
-				}
+					getDownloadURL(uploadTask.snapshot.ref).then(resolve).catch(reject)
+				},
 			)
 		})
 	}, [])

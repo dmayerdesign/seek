@@ -119,6 +119,10 @@ export const AppCtx = createContext<AppContext | null>(null)
 export interface AppContext {
 	firebaseApp: FirebaseApp
 	user: User | null | undefined
-	callCloudFunction: <ReturnType = void>(endpoint: string, data?: any, authorization?: string) => Promise<ReturnType | null>
+	callCloudFunction: <ReturnType = void>(
+		endpoint: string,
+		data?: any,
+		authorization?: string,
+	) => Promise<ReturnType | null>
 	uploadFile: (file: File, destFolder: string) => Promise<string>
 }

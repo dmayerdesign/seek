@@ -1,6 +1,7 @@
 import { faTrashCan } from "@fortawesome/free-regular-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import CanvasFreeDrawing, { AllowedEvents } from "canvas-free-drawing"
+import CanvasFreeDrawing, { AllowedEvents } from "./canvas-free-drawing-fork"
+// import CanvasFreeDrawing, { AllowedEvents } from "canvas-free-drawing"
 import { throttle } from "lodash"
 import { FC, MutableRefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 
@@ -114,23 +115,28 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 	// 	}
 	// 	onClear()
 	// }, [ctx.current, w.current, h.current])
-	
 
 	const [cfd, setCfd] = useState<CanvasFreeDrawing | null>(null)
+	const [color, setColor] = useState("rgb(0,0,0)")
 	useEffect(() => {
 		if (canvasRef.current) {
 			const _cfd = new CanvasFreeDrawing({
 				elementId: id + "_cfd",
 				width: 1000,
 				height: 700,
-				showWarnings: true
+				showWarnings: true,
 			})
 			_cfd.strokeColor = [0, 0, 0]
 			_cfd.lineWidth = 4
 			_cfd.on({ event: AllowedEvents.redraw }, () => {
+				// console.log("CanvasFreeDrawing redraw")
 				onDraw()
 			})
+			_cfd.on({ event: AllowedEvents.mousedown }, () => {
+				// console.log("CanvasFreeDrawing mousedown")
+			})
 			setCfd(_cfd)
+			console.log("CanvasFreeDrawing did initialize", _cfd)
 		}
 	}, [canvasRef.current])
 	const clearAll = useCallback(() => {
@@ -142,26 +148,32 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 
 	return (
 		<>
-			<div id="canvas-container"
+			<div
+				id="canvas-container"
 				ref={containerRef}
 				style={{
 					position: "relative",
 					// height: "700px",
 				}}
 			>
-				<div className="color-and-stroke" style={{ display: "flex", gap: "40px", alignItems: "center", padding: "15px 0" }}>
+				<div
+					className="color-and-stroke"
+					style={{ display: "flex", gap: "40px", alignItems: "center", padding: "15px 0" }}
+				>
 					<div className="stroke-width-select" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-						{[4, 8, 12, 24, 36].map((width) => (
-							<button key={`${width}`}
+						{[4, 8, 12, 24, 36, 48, 72].map((width) => (
+							<button
+								key={`${width}`}
 								onClick={() => {
 									// lineWidth.current = width
 									cfd?.setLineWidth(width)
 								}}
 								style={{
-									width: (width * 1.5) + "px",
-									height: (width * 1.5) + "px",
+									width: width * 1.1 + "px",
+									height: width * 1.1 + "px",
 									borderRadius: "50%",
-									background: "#eee",
+									// background: "#eee",
+									background: color,
 									border: "none",
 								}}
 							/>
@@ -169,14 +181,36 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 					</div>
 					<div className="color-select">
 						{[
-							  [0,0,0],
-							  [231, 214, 206],[166, 152, 168],[80, 194, 54],[21, 133, 111],[35, 78, 0],
-							  [247, 246, 182],[239, 195, 6],[167, 85, 66],[2, 85, 147],[67, 68, 129],
-							  [254, 108, 83],[241, 46, 56],[216, 35, 83],[235, 139, 142],[181, 31, 143],
-						].map(c => (
-							<button key={JSON.stringify(c)}
+							[0, 0, 0], // Black (text, outlines)
+							[255, 255, 255], // White (background, highlights)
+							[255, 69, 0], // Bright Red-Orange (temperature, heat)
+							[255, 80, 80], // Alert Red (warnings, heat, biological emphasis)
+							[200, 50, 50], // Dark Red (danger, heat maps)
+							[255, 150, 0], // Orange (caution, transitions)
+							[255, 200, 0], // Golden Yellow (energy, light, important highlights)
+							[255, 255, 160], // Soft Yellow (subtle highlights, background)
+							[50, 205, 50], // Lime Green (plant life, biology)
+							[0, 200, 0], // Green (biology, environment, life sciences)
+							[140, 70, 20], // Earth Brown (geology, natural elements)
+							[210, 180, 140], // Tan (earth sciences, sedimentary layers)
+							[90, 200, 250], // Cyan Blue (cool elements, water, atmosphere)
+							[30, 144, 255], // Dodger Blue (water, atmospheric elements)
+							[0, 150, 255], // Science Blue (general emphasis)
+							[70, 70, 255], // Strong Blue (electricity, high energy)
+							[0, 0, 128], // Deep Navy Blue (depth, space, structure)
+							[80, 0, 160], // Deep Violet (contrast, advanced concepts)
+							[75, 0, 130], // Indigo (deep space, physics, theoretical concepts)
+							[190, 90, 255], // Purple (mystery, deep space, chemistry)
+							[255, 110, 180], // Pink (biological emphasis, cells, organic matter)
+							[255, 240, 230], // Soft Off-White (background variation)
+							[245, 222, 179], // Wheat (neutral backgrounds)
+							[160, 160, 160], // Neutral Gray (for balance, shading)
+							[169, 169, 169], // Dark Gray (structural elements, shadows)
+						].map((c) => (
+							<button
+								key={JSON.stringify(c)}
 								onClick={() => {
-									// color.current = `rgb(${c.join(",")})`
+									setColor(`rgb(${c.join(",")})`)
 									cfd?.setDrawingColor(c)
 								}}
 								style={{
@@ -205,25 +239,30 @@ const CanvasInput: FC<CanvasInputProps> = ({ id, canvasRef, containerRef, onDraw
 							background: "white",
 						}}
 					/> */}
-					<canvas
-						id={id + "_cfd"}
-						ref={canvasRef}
-					/>
+					<canvas id={id + "_cfd"} ref={canvasRef} />
 				</div>
 				<div
 					style={{
 						position: "absolute",
-						top: "-33px",
-						width: "100%",
+						zIndex: 100,
+						bottom: 700 - 25 + "px",
+						right: "15px",
 						textAlign: "right",
 					}}
 				>
-					<button onClick={() => clearAll()}
+					<button
+						onClick={() => {
+							if (window.confirm("Erase your drawing and start over? This cannot be undone.")) {
+								clearAll()
+							}
+						}}
 						style={{
 							fontSize: "12px",
-						}}>
-						<FontAwesomeIcon icon={faTrashCan} />&nbsp;
-						Clear and start over
+						}}
+					>
+						<FontAwesomeIcon icon={faTrashCan} style={{ color: "#222" }} />
+						&nbsp;
+						<b style={{ color: "#222" }}>Clear drawing</b>
 					</button>
 				</div>
 			</div>
